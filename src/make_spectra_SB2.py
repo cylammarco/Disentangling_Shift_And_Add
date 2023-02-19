@@ -1,25 +1,25 @@
 # Short script to create mock SB2 binaries, by Tomer Shenar
 
 
-import matplotlib.pyplot as plt
 import glob
+import math
 import os
+import random
+import sys
+
+import matplotlib.pyplot as plt
 import numpy as np
+from astropy.convolution import Gaussian1DKernel, convolve
+from astropy.io import ascii
+from scipy import asarray as ar
+from scipy import exp, stats
+from scipy.interpolate import interp1d
+from scipy.optimize import curve_fit
+from scipy.signal import savgol_filter
 
 # # # # # # # Simple script to create "mock SB1/SB2" data  # # # # # # #
 # Created by Tomer Shenar, T.Shenar@uva.nl; tomer.shenar@gmail.com
 
-import math
-import sys
-from astropy.io import ascii
-from scipy.interpolate import interp1d
-from scipy import stats
-from scipy.signal import savgol_filter
-from scipy.optimize import curve_fit
-from scipy import asarray as ar, exp
-import random
-from astropy.convolution import Gaussian1DKernel
-from astropy.convolution import convolve
 
 ######################################
 # # # # # # # USER INPUT # # # # # # #

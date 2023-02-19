@@ -1,9 +1,8 @@
 # For plotting 1-D and 2-D chi2 maps and compute K1+K2 + error estimate.
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.pyplot import figure
-
 
 ###########################
 ######### USER INPUT ######

@@ -8,8 +8,8 @@
 # Coming up in upcoming versions: Higher-order multiples and nebular contamination.
 
 
-from Input_disentangle import *
 from Disentangling.disentangle_functions import *
+from Input_disentangle import *
 
 ##################################################################
 ####### READING OF DATA --- USER POTENTIALLY NEEDS TO EDIT #######

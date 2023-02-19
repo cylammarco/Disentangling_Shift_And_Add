@@ -6,17 +6,18 @@
 
 import glob
 import os
-import numpy as np
-from astropy.io import ascii
-from scipy.interpolate import interp1d
-import pandas as pd
-import matplotlib.pyplot as plt
-import astropy.io.fits as fits
-import scipy.special as sc
-from astropy.table import Table
 import sys
-from matplotlib.ticker import MultipleLocator, AutoMinorLocator
+
+import astropy.io.fits as fits
 import matplotlib.pylab as pylab
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import scipy.special as sc
+from astropy.io import ascii
+from astropy.table import Table
+from matplotlib.ticker import AutoMinorLocator, MultipleLocator
+from scipy.interpolate import interp1d
 
 # params = {'legend.fontsize': 'x-large',
 #'axes.labelsize': 'x-large',
