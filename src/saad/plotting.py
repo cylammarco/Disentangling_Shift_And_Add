@@ -3,11 +3,12 @@
 
 # Python plotting script; written by Julia Bodensteiner,
 # extended by Tomer Shenar
+import os
 import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.ticker import AutoMinorLocator, MultipleLocator
+from matplotlib.ticker import MultipleLocator
 
 from .file_handler import read_file
 
@@ -321,120 +322,185 @@ def plot_input_spectrum():
         ax.legend()
         ax.set_xlabel("Wavelength [A]")
         ax.set_ylabel("Flux")
+    if display:
         plt.show()
-        # np.savetxt(infile + '.txt', np.c_[wave_in, flux])
 
 
-def plot_fits(
+def plot_chi2(
+    Ks_comp,
+    redchi2,
+    chi2,
+    nu,
+    chi2fine,
+    parb,
+    chi2P1,
+    K_label,
+    output_path,
+    filename,
+    display,
+):
+    plt.figure(figsize=(6, 6))
+    plt.clf()
+    plt.scatter(Ks_comp, redchi2, s=2)
+    plt.scatter(Ks_comp, chi2 / nu, s=2)
+    plt.plot(chi2fine, parb, color="C1")
+    plt.plot(
+        [Ks_comp[0], Ks_comp[-1]],
+        [chi2P1, chi2P1],
+        color="C3",
+        label=r"1$\sigma$ contour",
+    )
+    plt.ylabel(r"Normalised reduced $\chi^2$")
+    plt.xlabel(f"${{{K_label}}}$ [km/s]")
+    plt.legend()
+    plt.savefig(
+        os.path.join(output_path, filename),
+        bbox_inches="tight",
+    )
+
+    if display:
+        plt.show()
+
+
+def plot_best_fit(
     waves,
-    specsum,
-    Ashift,
-    Bshift,
-    Nebshift,
-    Obsspec,
+    spec_sum,
+    A_shift,
+    B_shift,
+    neb_shift,
+    obs_spec,
     label_name,
+    output_path,
+    star_name,
     display=False,
 ):
-    plt.plot(waves, specsum, label="sum")
-    plt.plot(waves, Ashift, label="A")
-    plt.plot(waves, Bshift, label="B")
-    if (Nebshift > 0).any():
-        plt.plot(waves, Nebshift, label="Neb")
+    plt.figure(figsize=(12, 8))
+    plt.clf()
+    plt.plot(waves, spec_sum, label="sum")
+    plt.plot(waves, A_shift, label="A")
+    plt.plot(waves, B_shift, label="B")
+    if (neb_shift > 0).any():
+        plt.plot(waves, neb_shift, label="Neb")
     plt.plot(
         waves,
-        Obsspec,
+        obs_spec,
         label=label_name,
     )
     plt.legend()
+    file_name = f"{star_name}_disentangled_spectra.pdf"
+    plt.savefig(os.path.join(output_path, file_name), bbox_inches="tight")
     if display:
         plt.show()
 
 
 def plot_extremes(
-    axes,
     waves,
-    Ashift,
-    Bshift,
-    Nebshift,
-    Obsspec,
-    specsum,
-    specname,
-    phi,
-    MJD,
-    pltExtyMin,
-    pltExtyMax,
-    StarName,
+    A_shift,
+    B_shift,
+    neb_shift,
+    obs_spec,
+    spec_sum,
+    spec_name,
+    phis,
+    mjds,
+    plt_ext_ymin,
+    plt_ext_ymax,
+    output_path,
+    star_name,
     range_str,
     K1now,
     K2now,
-    NebLines=False,
-    Panel=0,
-    linewid_ext=3,
-    extremes_fig_size=(7, 8),
+    neb_lines=False,
+    extremes_fig_size=(8, 8),
+    line_wid_ext=2,
     display=False,
 ):
-    print(linewid_ext)
-    axes[Panel].plot(
-        waves,
-        Ashift,
-        label="Prim Dis.",
-        color="red",
-        linestyle="dotted",
-        linewidth=linewid_ext,
+    fig_extremes, axes = plt.subplots(
+        nrows=2, ncols=1, figsize=extremes_fig_size
     )
-    axes[Panel].plot(
-        waves, Bshift, label="Sec. Dis.", color="green", linewidth=linewid_ext
-    )
-    if NebLines:
-        axes[Panel].plot(waves, Nebshift, label="Nebular Dis.", color="purple")
-    axes[Panel].plot(
-        waves,
-        Obsspec,
-        color="blue",
-        label=str(round(MJD, 0)) + r", $\varphi=$" + str(round(phi, 2)),
-    )
-    axes[Panel].plot(
-        waves,
-        specsum,
-        label="Sum Dis.",
-        color="black",
-        linestyle="--",
-        linewidth=linewid_ext,
-    )
-    axes[Panel].set_title(specname.split("/")[-1])
-    axes[Panel].legend(prop={"size": legsize}, loc=locleg, framealpha=alphaleg)
-    axes[Panel].set_ylabel("Normalised flux")
-    axes[Panel].set_ylim(pltExtyMin, pltExtyMax)
-    DiffMajor = int((waves[-1] - waves[0]) / 3)
-    axes[Panel].xaxis.set_major_locator(MultipleLocator(DiffMajor))
-    axes[Panel].xaxis.set_minor_locator(MultipleLocator(DiffMajor / 5.0))
-    axes[Panel].yaxis.set_minor_locator(MultipleLocator(0.01))
 
-    if Panel == 1:
-        plt.tight_layout()
-        file_name = f"Output/{StarName}_{range_str}_Extremes_"
-        file_name += f"{np.round(K1now)}_{np.round(K2now)}.pdf"
-        plt.savefig(file_name, bbox_inches="tight")
+    for panel in range(2):
+        axes[panel].plot(
+            waves,
+            A_shift[panel],
+            label="Prim. Dis.",
+            color="red",
+            linestyle="dotted",
+            linewidth=line_wid_ext,
+        )
+        axes[panel].plot(
+            waves,
+            B_shift[panel],
+            label="Sec. Dis.",
+            color="green",
+            linewidth=line_wid_ext,
+        )
+        if neb_lines:
+            axes[panel].plot(
+                waves, neb_shift[panel], label="Nebular Dis.", color="purple"
+            )
+        axes[panel].plot(
+            waves,
+            obs_spec[panel],
+            color="blue",
+            label=str(round(mjds[panel], 0))
+            + r", $\varphi=$"
+            + str(round(phis[panel], 2)),
+        )
+        axes[panel].plot(
+            waves,
+            spec_sum[panel],
+            label="Sum Dis.",
+            color="black",
+            linestyle="--",
+            linewidth=line_wid_ext,
+        )
+        axes[panel].set_title(spec_name[panel].split(os.path.sep)[-1])
+        axes[panel].legend(
+            prop={"size": legsize}, loc=locleg, framealpha=alphaleg
+        )
+        axes[panel].set_ylabel("Normalised flux")
+        axes[panel].set_ylim(plt_ext_ymin[panel], plt_ext_ymax[panel])
+        diff_major = int((waves[-1] - waves[0]) / 3)
+        axes[panel].xaxis.set_major_locator(MultipleLocator(diff_major))
+        axes[panel].xaxis.set_minor_locator(MultipleLocator(diff_major / 5.0))
+        axes[panel].yaxis.set_minor_locator(MultipleLocator(0.01))
 
-        if display:
-            plt.show()
+    file_name = f"{star_name}_{range_str}_Extremes_"
+    file_name += f"{np.round(K1now[panel])}_{np.round(K2now[panel])}.pdf"
+    plt.savefig(os.path.join(output_path, file_name), bbox_inches="tight")
 
-
-def plot_conv(itr, eps, display=False):
-    plt.scatter(itr, eps, color="blue")
-    plt.ylabel("log(Eps)")
-    plt.xlabel("iteration number")
     if display:
         plt.show()
 
 
-def plot_itr(itr, waves, A, B, Nebspec, display=False):
-    plt.plot(waves, A, label=itr)
-    plt.plot(waves, B, label=itr)
-    if (Nebspec > 0).any():
-        plt.plot(waves, Nebspec, label=itr)
+def plot_convergence(eps_itr, output_path, star_name, display=False):
+    plt.figure()
+    plt.clf()
+    plt.scatter(np.arange(len(eps_itr)), eps_itr, color="C0", s=2)
+    plt.ylabel("log(Eps)")
+    plt.xlabel("iteration number")
+    plt.tight_layout()
+    file_name = f"{star_name}_convergence.pdf"
+    plt.savefig(os.path.join(output_path, file_name), bbox_inches="tight")
+    if display:
+        plt.show()
+
+
+def plot_iteration(
+    itr, waves, A, B, neb_spec, output_path, star_name, display=False
+):
+    plt.figure()
+    plt.clf()
+    plt.plot(waves, A, label=itr, lw=1)
+    plt.plot(waves, B, label=itr, lw=1)
+    if (neb_spec > 0).any():
+        plt.plot(waves, neb_spec, label=itr)
     plt.ylabel("Normalised flux")
     plt.xlabel("Wavelength")
+    plt.tight_layout()
     plt.legend()
+    file_name = f"{star_name}_iteration_{itr}.pdf"
+    plt.savefig(os.path.join(output_path, file_name), bbox_inches="tight")
     if display:
         plt.show()

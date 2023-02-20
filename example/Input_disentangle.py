@@ -104,13 +104,13 @@ S2Nred = 4165
 # Run grid disentangling?
 # If TRUE: will conduct grid disentangling and derive Ks
 # If FALSE: will only peform separation using input K1,K2
-grid_dis = False
+grid_dis = True
 
 # Define grid search (only important if GridDis = True).
 # For setting K1, K2, K3, K4 search arrays: Karr = np.arange(IniFacK*K, FinFacK*K, Dense)
 # Current version only works for first two columns (K1, K2)
 # If dense_k_arr[i] = 1, then the search is "1D", i.e. K is fixed to the value specified by the user.
-dense_k_arr = [15, 15, 1, 1]
+dense_k_arr = [10, 10, 1, 1]
 ini_fac_k_arr = [0.1, 0.1, 0.3, 0.3]
 fin_fac_k_arr = [2.0, 2.0, 2.0, 2.0]
 
@@ -196,7 +196,7 @@ velo_plot_usr_K3_ext = orbital_params["K3"]
 velo_plot_usr_K4_ext = orbital_params["K4"]
 
 # line width and figsize for "Extreme plots"
-line_wid_ext = 7
+line_wid_ext = 2
 extremes_fig_size = (7, 7)
 
 
@@ -204,7 +204,7 @@ extremes_fig_size = (7, 7)
 # Useful to examine all data; rather tedious but important for critical systems (e.g., black holes!)
 # The plot is shown for the K1, K2 pair most closely matching (velo_plot_usr_K1, velo_plot_usr_K2) given by the user.
 # Recommended: False
-PLOTFITS = False
+PLOTFITS = True
 velo_plot_usr_K1 = orbital_params["K1"]
 velo_plot_usr_K2 = orbital_params["K2"]
 velo_plot_usr_K3 = orbital_params["K3"]
@@ -214,12 +214,12 @@ velo_plot_usr_K4 = orbital_params["K4"]
 # If True, will produce converge plot, i.e. EPS vs. itr for each run.
 # EPS = SUM(DisSpec[i+1] - DisSpec[i]), where the maximum on all components is taken.
 # Recommended: False
-PLOTCONV = False
+PLOTCONV = True
 
 
 # Plot disentangled spectra after each "n_iteration_plot" iterations; helpful for judging convergence.
 # Recommended: False
-PLOTITR = False
+PLOTITR = True
 n_iteration_plot = 100
 
 

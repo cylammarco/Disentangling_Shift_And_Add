@@ -9,13 +9,20 @@
 
 
 import copy
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.special import gammainc
 
-from .plotting import plot_conv, plot_extremes, plot_fits, plot_itr
+from .plotting import (
+    plot_best_fit,
+    plot_chi2,
+    plot_convergence,
+    plot_extremes,
+    plot_iteration,
+)
 
 __all__ = ["Disentangle"]
 
@@ -40,7 +47,6 @@ class Disentangle:
         self.K2now = None
         self.K1s = None
         self.K2s = None
-        self.A = None
 
     # Solves the Kepler equation
     @staticmethod
@@ -84,6 +90,7 @@ class Disentangle:
         nu,
         Ks,
         range_str,
+        output_path,
         P1=0.68,
         comp="secondary",
         parb_size=3,
@@ -141,39 +148,35 @@ class Disentangle:
         K2err = (
             K2min - (-b - np.sqrt(b**2.0 - 4.0 * a * (c - chi2P1))) / 2.0 / a
         )
-
-        # plot
-        plt.scatter(Ks_comp, redchi2)
-        plt.scatter(Ks_comp, chi2 / nu)
-        plt.plot(chi2fine, parb, color="orange")
-        plt.plot(
-            [Ks_comp[0], Ks_comp[-1]],
-            [chi2P1, chi2P1],
-            color="red",
-            label=r"1$\sigma$ contour",
-        )
-        plt.ylabel(r"Normalised reduced $\chi^2$")
-        plt.xlabel(f"${{{K_label}}}$ [km/s]")
         np.savetxt(
-            f"Output/{range_str}_grid_dis_{K_name}.txt",
+            os.path.join(output_path, f"{range_str}_grid_dis_{K_name}.txt"),
             np.c_[Ks_comp, redchi2],
             header=f"#1sigma = {chi2P1 * parb_min}",
         )
-        plt.legend()
 
-        plt.savefig(
-            f"Output/{range_str}_Grid_disentangling_{K_name}.pdf",
-            bbox_inches="tight",
+        fig_filename = f"{range_str}_Grid_disentangling_{K_name}.pdf"
+
+        # plot
+        plot_chi2(
+            Ks_comp,
+            redchi2,
+            chi2,
+            nu,
+            chi2fine,
+            parb,
+            chi2P1,
+            K_label,
+            output_path,
+            fig_filename,
+            display,
         )
-
-        if display:
-            plt.show()
 
         return chi2P1, K2min, K2err
 
     # Ensures that arr values where arr > lim are set to 0 in domains
     # specified in pos_lim array
-    def _limit(self, waves, arr, lim, pos_lim):
+    @staticmethod
+    def _limit(waves, arr, lim, pos_lim):
         for i, Range in enumerate(pos_lim):
             if "PosCond" not in locals():
                 PosCond = (pos_lim[i][0] < waves) * (waves < pos_lim[i][1])
@@ -235,6 +238,7 @@ class Disentangle:
         phis,
         spec_names,
         range_str,
+        output_path,
         star_name,
         scaling_neb,
         resid=False,
@@ -249,7 +253,7 @@ class Disentangle:
         neb_fac=1,
         S2NpixelRange=5,
         kcount_usr=0,
-        extremes_fig_size=(7, 8),
+        extremes_fig_size=(8, 8),
         display=False,
     ):
         RV_ext_max_ind, RV_ext_min_ind = np.argmax(vrA), np.argmin(vrA)
@@ -302,6 +306,21 @@ class Disentangle:
             plt_ext_ymin = min(plot_min_yarr) * 1.1
             plt_ext_ymax = max(plot_max_yarr) * 1.1
 
+        if PLOTEXTREMES:
+            extremes_A_shift = []
+            extremes_B_shift = []
+            extremes_neb_shift = []
+            extremes_obs_spec = []
+            extremes_spec_sum = []
+            extremes_spec_names = []
+            extremes_phis = []
+            extremes_mjds = []
+            extremes_plt_ext_ymin = []
+            extremes_plt_ext_ymax = []
+            extremes_k1 = []
+            extremes_k2 = []
+            extremes_neb_lines = []
+
         for ind in np.arange(len(obs_specs)):
             vA = vrA[ind] / self.clight
             vB = vrB[ind] / self.clight
@@ -329,84 +348,108 @@ class Disentangle:
                         waves, neb_spec, bounds_error=False, fill_value=0.0
                     )(waves[wave_calc_cond])
                 )
-                specsum = A_shift + B_shift + neb_shift
+                spec_sum = A_shift + B_shift + neb_shift
             else:
                 neb_shift = np.zeros(len(A_shift))
-                specsum = A_shift + B_shift
+                spec_sum = A_shift + B_shift
             sigma = (
                 np.std(obs_spec[:S2NpixelRange])
                 + np.std(obs_spec[-S2NpixelRange:])
             ) / 2.0
             if resid:
-                residuals.append(obs_spec - specsum)
-            Sum += np.sum((obs_spec - specsum) ** 2 / sigma**2)
-            if PLOTFITS:
-                # User needs to change kcount==1 condition if a specific K2
-                # is desired for plotting.
-                if self.kcount == kcount_usr:
-                    label_name = (
-                        spec_names[ind].split("/")[-1]
-                        + r", $\varphi=$"
-                        + str(round(phis[ind], 2))
-                    )
-                    plot_fits(
-                        waves=waves[wave_calc_cond],
-                        specsum=specsum,
-                        A_shift=A_shift,
-                        B_shift=B_shift,
-                        neb_shift=neb_shift,
-                        obs_spec=obs_spec,
-                        label_name=label_name,
-                        display=display,
-                    )
+                residuals.append(obs_spec - spec_sum)
+            Sum += np.sum((obs_spec - spec_sum) ** 2 / sigma**2)
 
             if PLOTEXTREMES:
-                _, axes = plt.subplots(
-                    nrows=2, ncols=1, figsize=extremes_fig_size
+                # Only plot if ind is 0 or maximum
+                if self.K1now is None:
+                    _k1 = self.orbital_params["K1"]
+                else:
+                    _k1 = self.K1now
+
+                if self.K2now is None:
+                    _k2 = K2s[self.kcount]
+                else:
+                    _k2 = self.K2now
+
+                if ind == min(RV_ext_min_ind, RV_ext_max_ind):
+                    extremes_A_shift.append(A_shift)
+                    extremes_B_shift.append(B_shift)
+                    extremes_neb_shift.append(neb_shift)
+                    extremes_obs_spec.append(obs_spec)
+                    extremes_spec_sum.append(spec_sum)
+                    extremes_spec_names.append(spec_names[ind])
+                    extremes_phis.append(phis[ind])
+                    extremes_mjds.append(mjds[ind])
+                    extremes_plt_ext_ymin.append(plt_ext_ymin)
+                    extremes_plt_ext_ymax.append(plt_ext_ymax)
+                    extremes_k1.append(_k1)
+                    extremes_k2.append(_k2)
+                    extremes_neb_lines.append(neb_lines)
+
+                elif ind == max(RV_ext_min_ind, RV_ext_max_ind):
+                    extremes_A_shift.append(A_shift)
+                    extremes_B_shift.append(B_shift)
+                    extremes_neb_shift.append(neb_shift)
+                    extremes_obs_spec.append(obs_spec)
+                    extremes_spec_sum.append(spec_sum)
+                    extremes_spec_names.append(spec_names[ind])
+                    extremes_phis.append(phis[ind])
+                    extremes_mjds.append(mjds[ind])
+                    extremes_plt_ext_ymin.append(plt_ext_ymin)
+                    extremes_plt_ext_ymax.append(plt_ext_ymax)
+                    extremes_k1.append(_k1)
+                    extremes_k2.append(_k2)
+                    extremes_neb_lines.append(neb_lines)
+
+                else:
+                    pass
+
+        if PLOTEXTREMES:
+            plot_extremes(
+                waves[wave_calc_cond],
+                extremes_A_shift,
+                extremes_B_shift,
+                extremes_neb_shift,
+                extremes_obs_spec,
+                extremes_spec_sum,
+                extremes_spec_names,
+                extremes_phis,
+                extremes_mjds,
+                extremes_plt_ext_ymin,
+                extremes_plt_ext_ymax,
+                output_path,
+                star_name,
+                range_str,
+                extremes_k1,
+                extremes_k2,
+                neb_lines=neb_lines,
+                extremes_fig_size=extremes_fig_size,
+                line_wid_ext=line_wid_ext,
+                display=display,
+            )
+
+        if PLOTFITS:
+            # User needs to change kcount==1 condition if a specific K2
+            # is desired for plotting.
+            if self.kcount == kcount_usr:
+                label_name = (
+                    spec_names[ind].split(os.path.sep)[-1]
+                    + r", $\varphi=$"
+                    + str(round(phis[ind], 2))
                 )
-                if self.kcount == kcount_extremeplot:
-                    if ind == min(RV_ext_min_ind, RV_ext_max_ind):
-                        _panel = 0
-                    elif ind == max(RV_ext_min_ind, RV_ext_max_ind):
-                        _panel = 1
-                    else:
-                        _panel = None
-
-                    # Only plot if ind is 0 or maximum
-                    if self.K1now is None:
-                        _k1 = self.orbital_params["K1"]
-                    else:
-                        _k1 = self.K1now
-
-                    if self.K2now is None:
-                        _k2 = K2s[self.kcount]
-                    else:
-                        _k2 = self.K2now
-
-                    if _panel is not None:
-                        plot_extremes(
-                            axes,
-                            waves[wave_calc_cond],
-                            A_shift,
-                            B_shift,
-                            neb_shift,
-                            obs_spec,
-                            specsum,
-                            spec_names[ind],
-                            phis[ind],
-                            mjds[ind],
-                            plt_ext_ymin,
-                            plt_ext_ymax,
-                            star_name,
-                            range_str,
-                            _k1,
-                            _k2,
-                            neb_lines=neb_lines,
-                            Panel=_panel,
-                            line_wid_ext=line_wid_ext,
-                            extremes_fig_size=extremes_fig_size,
-                            display=display,
-                        )
+                plot_best_fit(
+                    waves=waves[wave_calc_cond],
+                    spec_sum=spec_sum,
+                    A_shift=A_shift,
+                    B_shift=B_shift,
+                    neb_shift=neb_shift,
+                    obs_spec=obs_spec,
+                    label_name=label_name,
+                    output_path=output_path,
+                    star_name=star_name,
+                    display=display,
+                )
 
         print("kcount:", self.kcount)
 
@@ -450,6 +493,7 @@ class Disentangle:
         phis,
         spec_names,
         range_str,
+        output_path,
         star_name,
         scaling_neb,
         neb_spec,
@@ -486,6 +530,8 @@ class Disentangle:
         """
 
         strict_neg_A, strict_neg_B, strict_neg_C, strict_neg_D = strict_neg
+        A = None
+
         # If convergence plot: allow spectra to be positive for sensible
         # convergence plot:
         if PLOTCONV:
@@ -506,7 +552,7 @@ class Disentangle:
             try:
                 self.K1now = K1s[self.k1]
                 self.K2now = K2s[self.k2]
-                print("Disentangeling..... K1, K2=", self.K1now, self.K2now)
+                print(f"Disentangling... K1, K2 = {self.K1now}, {self.K2now}")
             except:
                 pass
         else:
@@ -538,24 +584,24 @@ class Disentangle:
             for i in np.arange(len(obs_specs))
         ]
         # Frame of Refernce star 1:
-        WavesBA = np.array(
+        waves_BA = np.array(
             [
                 waves * fac_shift_2[i] / fac_shift_1[i]
                 for i in np.arange(len(vrads1))
             ]
         )
         # Frame of Refernce star 2:
-        WavesAB = np.array(
+        waves_AB = np.array(
             [
                 waves * fac_shift_1[i] / fac_shift_2[i]
                 for i in np.arange(len(vrads1))
             ]
         )
         if neb_lines:
-            FacshiftNeb = np.ones(len(vrads1))
+            fac_shift_neb = np.ones(len(vrads1))
             SsNeb = [
                 interp1d(
-                    obs_specs[i][:, 0] / FacshiftNeb[i],
+                    obs_specs[i][:, 0] / fac_shift_neb[i],
                     obs_specs[i][:, 1] - 1.0,
                     bounds_error=False,
                     fill_value=0.0,
@@ -563,36 +609,37 @@ class Disentangle:
                 )(waves)
                 for i in np.arange(len(obs_specs))
             ]
-            WavesNebA = np.array(
+            waves_neb_A = np.array(
                 [
-                    waves * FacshiftNeb[i] / fac_shift_1[i]
+                    waves * fac_shift_neb[i] / fac_shift_1[i]
                     for i in np.arange(len(vrads1))
                 ]
             )
-            WavesNebB = np.array(
+            waves_neb_B = np.array(
                 [
-                    waves * FacshiftNeb[i] / fac_shift_2[i]
+                    waves * fac_shift_neb[i] / fac_shift_2[i]
                     for i in np.arange(len(vrads1))
                 ]
             )
-            WavesANeb = np.array(
+            waves_A_neb = np.array(
                 [
-                    waves * fac_shift_1[i] / FacshiftNeb[i]
+                    waves * fac_shift_1[i] / fac_shift_neb[i]
                     for i in np.arange(len(vrads1))
                 ]
             )
-            WavesBNeb = np.array(
+            waves_B_neb = np.array(
                 [
-                    waves * fac_shift_2[i] / FacshiftNeb[i]
+                    waves * fac_shift_2[i] / fac_shift_neb[i]
                     for i in np.arange(len(vrads1))
                 ]
             )
         itr = 0
+        eps_itr = []
         while itr < itr_num_lim:
             itr += 1
             BA_shifts = [
                 interp1d(
-                    WavesBA[i],
+                    waves_BA[i],
                     B,
                     bounds_error=False,
                     fill_value=0.0,
@@ -601,9 +648,9 @@ class Disentangle:
                 for i in np.arange(len(obs_specs))
             ]
             if neb_lines:
-                NebA_shifts = [
+                neb_A_shifts = [
                     interp1d(
-                        WavesNebA[i],
+                        waves_neb_A[i],
                         neb_spec,
                         bounds_error=False,
                         fill_value=0.0,
@@ -611,7 +658,7 @@ class Disentangle:
                     )
                     for i in np.arange(len(obs_specs))
                 ]
-                specMean = np.sum(
+                spec_mean = np.sum(
                     np.array(
                         [
                             weights[i]
@@ -620,7 +667,7 @@ class Disentangle:
                                 - BA_shifts[i](waves)
                                 - neb_fac
                                 * scaling_neb[i]
-                                * NebA_shifts[i](waves)
+                                * neb_A_shifts[i](waves)
                             )
                             for i in np.arange(len(Ss1))
                         ]
@@ -628,7 +675,7 @@ class Disentangle:
                     axis=0,
                 )
             else:
-                specMean = np.sum(
+                spec_mean = np.sum(
                     np.array(
                         [
                             weights[i] * (Ss1[i] - BA_shifts[i](waves))
@@ -637,24 +684,24 @@ class Disentangle:
                     ),
                     axis=0,
                 )
-            Anew = interp1d(
+            A_new = interp1d(
                 waves,
-                specMean,
+                spec_mean,
                 bounds_error=False,
                 fill_value=0.0,
                 kind=inter_kind,
             )(waves)
             if strict_neg_A:
-                Anew = self._limit(waves, Anew, pos_lim_all, pos_lim_cond_A)
-            if self.A is not None:
-                Epsnew = np.amax((self.A - Anew) ** 2)
+                A_new = self._limit(waves, A_new, pos_lim_all, pos_lim_cond_A)
+            if A is not None:
+                eps_new = np.amax((A - A_new) ** 2)
             else:
-                Epsnew = 0.0
-            self.A = copy.deepcopy(Anew)
+                eps_new = 0.0
+            A = copy.deepcopy(A_new)
             AB_shifts = [
                 interp1d(
-                    WavesAB[i],
-                    self.A,
+                    waves_AB[i],
+                    A,
                     bounds_error=False,
                     fill_value=0.0,
                     kind=inter_kind,
@@ -662,9 +709,9 @@ class Disentangle:
                 for i in np.arange(len(obs_specs))
             ]
             if neb_lines:
-                NebB_shifts = [
+                neb_B_shifts = [
                     interp1d(
-                        WavesNebB[i],
+                        waves_neb_B[i],
                         neb_spec,
                         bounds_error=False,
                         fill_value=0.0,
@@ -672,7 +719,7 @@ class Disentangle:
                     )
                     for i in np.arange(len(obs_specs))
                 ]
-                specMean = np.sum(
+                spec_mean = np.sum(
                     np.array(
                         [
                             weights[i]
@@ -681,7 +728,7 @@ class Disentangle:
                                 - AB_shifts[i](waves)
                                 - neb_fac
                                 * scaling_neb[i]
-                                * NebB_shifts[i](waves)
+                                * neb_B_shifts[i](waves)
                             )
                             for i in np.arange(len(Ss1))
                         ]
@@ -689,7 +736,7 @@ class Disentangle:
                     axis=0,
                 )
             else:
-                specMean = np.sum(
+                spec_mean = np.sum(
                     np.array(
                         [
                             weights[i] * (Ss2[i] - AB_shifts[i](waves))
@@ -698,31 +745,31 @@ class Disentangle:
                     ),
                     axis=0,
                 )
-            Bnew = interp1d(
+            B_new = interp1d(
                 waves,
-                specMean,
+                spec_mean,
                 bounds_error=False,
                 fill_value=0.0,
                 kind=inter_kind,
             )(waves)
             if strict_neg_B:
-                Bnew = self._limit(waves, Bnew, pos_lim_all, pos_lim_cond_B)
-            Epsnew = max(Epsnew, np.sum((B - Bnew) ** 2))
-            B = Bnew
+                B_new = self._limit(waves, B_new, pos_lim_all, pos_lim_cond_B)
+            eps_new = max(eps_new, np.sum((B - B_new) ** 2))
+            B = B_new
             if neb_lines:
-                Aneb_shifts = [
+                A_neb_shifts = [
                     interp1d(
-                        WavesANeb[i],
-                        self.A,
+                        waves_A_neb[i],
+                        A,
                         bounds_error=False,
                         fill_value=0.0,
                         kind=inter_kind,
                     )
                     for i in np.arange(len(obs_specs))
                 ]
-                Bneb_shifts = [
+                B_neb_shifts = [
                     interp1d(
-                        WavesBNeb[i],
+                        waves_B_neb[i],
                         B,
                         bounds_error=False,
                         fill_value=0.0,
@@ -730,15 +777,15 @@ class Disentangle:
                     )
                     for i in np.arange(len(obs_specs))
                 ]
-                specMean = np.sum(
+                spec_mean = np.sum(
                     np.array(
                         [
                             weights[i]
                             * self._limit(
                                 waves,
                                 SsNeb[i]
-                                - Aneb_shifts[i](waves)
-                                - Bneb_shifts[i](waves),
+                                - A_neb_shifts[i](waves)
+                                - B_neb_shifts[i](waves),
                                 pos_lim_all,
                                 pos_lim_cond_Neb,
                             )
@@ -749,36 +796,50 @@ class Disentangle:
                 )
                 neb_specnew = interp1d(
                     waves,
-                    specMean,
+                    spec_mean,
                     bounds_error=False,
                     fill_value=0.0,
                     kind=inter_kind,
                 )(waves)
                 neb_specnew[neb_specnew < pos_lim_all[0]] = 0.0
-                Epsnew = max(Epsnew, np.sum(np.abs(neb_spec - neb_specnew)))
+                eps_new = max(eps_new, np.sum(np.abs(neb_spec - neb_specnew)))
                 neb_spec = neb_specnew
             if show_itr:
                 if itr % 100 == 0:
                     print(
-                        "Finished "
-                        + str(itr)
-                        + " out of "
-                        + str(itr_num_lim)
-                        + " iterations ("
-                        + str(np.round(itr / itr_num_lim * 100.0, 3))
-                        + "%)"
+                        f"Finished {itr} out of {itr_num_lim} iterations ("
+                        f"{np.round(itr / itr_num_lim * 100.0, 3)}%)"
                     )
-                    # print("Convergence Epsilon:", Epsnew)
+                    # print("Convergence Epsilon:", eps_new)
+
             if PLOTCONV:
-                plot_conv(itr, np.log10(Epsnew), display)
+                eps_itr.append(np.log10(eps_new))
 
             if PLOTITR:
                 if itr % n_iteration_plot == 0:
-                    plot_itr(itr, waves, self.A, B, neb_spec, display)
+                    plot_iteration(
+                        itr,
+                        waves,
+                        A,
+                        B,
+                        neb_spec,
+                        output_path,
+                        star_name,
+                        display,
+                    )
 
-        print("Finished after ", itr, " iterations")
+        print(f"Finished after {itr} iterations")
 
-        dis_spec_vector = np.array([self.A, B, neb_spec])
+        if PLOTCONV:
+            plot_convergence(
+                eps_itr,
+                output_path,
+                star_name,
+                display,
+            )
+
+        dis_spec_vector = np.array([A, B, neb_spec])
+
         return dis_spec_vector + 1.0, self._calc_diffs(
             dis_spec_vector,
             vrads1,
@@ -792,6 +853,7 @@ class Disentangle:
             phis,
             spec_names,
             range_str,
+            output_path,
             star_name,
             scaling_neb,
             resid=resid,
@@ -808,178 +870,190 @@ class Disentangle:
             extremes_fig_size=extremes_fig_size,
         )
 
-        def grid_disentangling2D(
-            self,
-            waveRanges,
-            nus_data,
-            Bini,
-            K1s,
-            K2s,
-            obs_specs,
-            weights,
-            strict_neg,
-            pos_lim_cond,
-            pos_lim_all,
-            mjds,
-            phis,
-            spec_names,
-            range_str,
-            star_name,
-            scaling_neb,
-            Ini=None,
-            show_itr=False,
-            inter_kind="linear",
-            itr_num_lim=100,
-            NebOff=True,
-            PLOTCONV=False,
-            PLOTITR=False,
-            PLOTEXTREMES=False,
-            PLOTFITS=False,
-            kcount_extremeplot=0,
-            line_wid_ext=3,
-            comp_num=2,
-            parb_size=3,
-            n_iteration_plot=50,
-            neb_lines=False,
-            neb_fac=1,
-            kcount_usr=0,
-            extremes_fig_size=(7, 8),
-        ):
-            """
-            Assuming spectrum for secondary (Bini) and vrads1, gamma, and K1,
-            explore K2s array for best-fitting K2
-            Ini = determines initial assumption for 0'th iteration
-            show_itr = determines whether
-            """
+    def grid_disentangling2D(
+        self,
+        wave_ranges,
+        nus_data,
+        Bini,
+        K1s,
+        K2s,
+        obs_specs,
+        weights,
+        strict_neg,
+        pos_lim_cond,
+        pos_lim_all,
+        mjds,
+        phis,
+        spec_names,
+        range_str,
+        output_path,
+        star_name,
+        scaling_neb,
+        ini=None,
+        show_itr=False,
+        inter_kind="linear",
+        itr_num_lim=100,
+        PLOTCONV=False,
+        PLOTITR=False,
+        PLOTEXTREMES=False,
+        PLOTFITS=False,
+        kcount_extremeplot=0,
+        line_wid_ext=3,
+        comp_num=2,
+        parb_size=3,
+        n_iteration_plot=50,
+        neb_lines=False,
+        neb_fac=1,
+        kcount_usr=0,
+        extremes_fig_size=(7, 8),
+        display=False,
+    ):
+        """
+        Assuming spectrum for secondary (Bini) and vrads1, gamma, and K1,
+        explore K2s array for best-fitting K2
+        Ini = determines initial assumption for 0'th iteration
+        show_itr = determines whether
+        """
 
-            diffs = np.zeros(len(K1s) * len(K2s)).reshape(len(K1s), len(K2s))
-            self.DoFs = 0
-            for waves in waveRanges:
-                for k1, K1 in enumerate(K1s):
-                    for k2, K2 in enumerate(K2s):
-                        orbital_params_updated = copy.deepcopy(
-                            self.orbital_params
+        diffs = np.zeros(len(K1s) * len(K2s)).reshape(len(K1s), len(K2s))
+        self.DoFs = 0
+        self.kcount = 0
+        for waves in wave_ranges:
+            self.kcount = 0
+            for k1, K1 in enumerate(K1s):
+                for k2, K2 in enumerate(K2s):
+                    self.k1 = k1
+                    self.k2 = k2
+                    orbital_params_updated = copy.deepcopy(self.orbital_params)
+                    orbital_params_updated.update({"K1": K1})
+                    orbital_params_updated.update({"K2": K2})
+                    vrads1, vrads2 = self.v1_and_v2(
+                        nus_data, orbital_params_updated
+                    )
+                    neb_spec = waves * 0.0
+                    if ini == "A":
+                        print("Initial guess provided for component " + ini)
+                        # print Bini(waves)
+                        v_first_entry = vrads2
+                        v_second_entry = vrads1
+                    elif ini == "B":
+                        print("Initial guess provided for component " + ini)
+                        v_first_entry = vrads1
+                        v_second_entry = vrads2
+                    else:
+                        print(
+                            "No initial approximation given, assuming flat"
+                            "spectrum for secondary..."
                         )
-                        orbital_params_updated.update({"K1": K1})
-                        orbital_params_updated.update({"K2": K2})
-                        vrads1, vrads2 = self.v1_and_v2(
-                            nus_data, orbital_params_updated
-                        )
-                        neb_spec = waves * 0.0
-                        if Ini == "A":
-                            print(
-                                "Initial guess provided for component " + Ini
-                            )
-                            # print Bini(waves)
-                            v_first_entry = vrads2
-                            v_second_entry = vrads1
-                        elif Ini == "B":
-                            print(
-                                "Initial guess provided for component " + Ini
-                            )
-                            v_first_entry = vrads1
-                            v_second_entry = vrads2
-                        else:
-                            print(
-                                "No initial approximation given, assuming flat"
-                                "spectrum for secondary..."
-                            )
-                            Bini = interp1d(
-                                waves,
-                                np.ones(len(waves)),
-                                bounds_error=False,
-                                fill_value=1.0,
-                            )
-                            v_first_entry = vrads2
-                            v_second_entry = vrads1
-
-                        diffs[k1, k2] += self.disentangle(
-                            Bini(waves),
-                            v_first_entry,
-                            v_second_entry,
+                        Bini = interp1d(
                             waves,
-                            obs_specs,
-                            weights,
-                            strict_neg,
-                            pos_lim_cond,
-                            pos_lim_all,
-                            nus_data,
-                            orbital_params_updated,
-                            K1s,
-                            K2s,
-                            mjds,
-                            phis,
-                            spec_names,
-                            range_str,
-                            star_name,
-                            scaling_neb,
-                            neb_spec,
-                            inter_kind=inter_kind,
-                            itr_num_lim=itr_num_lim,
-                            PLOTCONV=PLOTCONV,
-                            PLOTITR=PLOTITR,
-                            PLOTEXTREMES=PLOTEXTREMES,
-                            PLOTFITS=PLOTFITS,
-                            kcount_extremeplot=kcount_extremeplot,
-                            line_wid_ext=line_wid_ext,
-                            comp_num=comp_num,
-                            n_iteration_plot=n_iteration_plot,
-                            neb_lines=neb_lines,
-                            neb_fac=1,
-                            kcount_usr=kcount_usr,
-                            extremes_fig_size=extremes_fig_size,
-                        )[-1]
+                            np.ones(len(waves)),
+                            bounds_error=False,
+                            fill_value=1.0,
+                        )
+                        v_first_entry = vrads2
+                        v_second_entry = vrads1
 
-            diffs /= self.DoFs
+                    diffs[k1, k2] += self.disentangle(
+                        Bini(waves),
+                        v_first_entry,
+                        v_second_entry,
+                        waves,
+                        obs_specs,
+                        weights,
+                        strict_neg,
+                        pos_lim_cond,
+                        pos_lim_all,
+                        nus_data,
+                        K1s,
+                        K2s,
+                        mjds,
+                        phis,
+                        spec_names,
+                        range_str,
+                        output_path,
+                        star_name,
+                        scaling_neb,
+                        neb_spec,
+                        inter_kind=inter_kind,
+                        itr_num_lim=itr_num_lim,
+                        PLOTCONV=PLOTCONV,
+                        PLOTITR=PLOTITR,
+                        PLOTEXTREMES=PLOTEXTREMES,
+                        PLOTFITS=PLOTFITS,
+                        kcount_extremeplot=kcount_extremeplot,
+                        line_wid_ext=line_wid_ext,
+                        comp_num=comp_num,
+                        n_iteration_plot=n_iteration_plot,
+                        neb_lines=neb_lines,
+                        neb_fac=1,
+                        kcount_usr=kcount_usr,
+                        extremes_fig_size=extremes_fig_size,
+                    )[-1]
 
-            try:
-                step_size_1 = K1s[1] - K1s[0]
-            except:
-                step_size_1 = 0
+        diffs /= self.DoFs
 
-            try:
-                step_size_2 = K2s[1] - K2s[0]
-            except:
-                step_size_2 = 0
+        try:
+            step_size_1 = K1s[1] - K1s[0]
+        except:
+            step_size_1 = 0
 
-            np.savetxt(
-                "Output/" + range_str + "_" + "grid_dis_K1K2.txt",
-                np.array(diffs),
-                header="#K1min, K2min, stepK1, stepK2, DoF = "
-                + f"{K1s[0]}, {K2s[0]}, {step_size_1}, {step_size_2}, "
-                + f"{self.DoFs}",
+        try:
+            step_size_2 = K2s[1] - K2s[0]
+        except:
+            step_size_2 = 0
+
+        np.savetxt(
+            "Output/" + range_str + "_" + "grid_dis_K1K2.txt",
+            np.array(diffs),
+            header="#K1min, K2min, stepK1, stepK2, DoF = "
+            + f"{K1s[0]}, {K2s[0]}, {step_size_1}, {step_size_2}, "
+            + f"{self.DoFs}",
+        )
+        k1min, k2min = np.argwhere(diffs == np.min(diffs))[0]
+        # print diffs
+        print(
+            "True velocities: ",
+            k1min,
+            k2min,
+            np.round(K1s[k1min], 2),
+            np.round(K2s[k2min], 2),
+        )
+
+        # Start with uncertainty on K1:
+        if step_size_2 > 0:
+            chi2P2, K2, K2err = self._chi2con(
+                diffs[k1min, :],
+                self.DoFs,
+                K2s,
+                range_str,
+                output_path,
+                P1=0.68,
+                comp="secondary",
+                parb_size=parb_size,
+                display=display,
             )
-            k1min, k2min = np.argwhere(diffs == np.min(diffs))[0]
-            # print diffs
-            print("True velocities: ", k1min, k2min, K1s[k1min], K2s[k2min])
+        else:
+            K2 = K2s[0]
+            K2err = 0
 
-            # Start with uncertainty on K1:
-            if step_size_2 > 0:
-                chi2P, K2, K2err = self._chi2con(
-                    diffs[k1min, :],
-                    self.DoFs,
-                    K1s,
-                    K2s,
-                    range_str,
-                    comp="secondary",
-                    parb_size=parb_size,
-                )
-            else:
-                K2 = K2s[0]
-                K2err = 0
-            if step_size_1 > 0:
-                chi2P, K1, K1err = self._chi2con(
-                    diffs[:, k2min],
-                    self.DoFs,
-                    K1s,
-                    K2s,
-                    range_str,
-                    comp="primary",
-                    parb_size=parb_size,
-                )
-            else:
-                K1 = K1s[0]
-                K1err = 0
-            print("K1, K1 min error:", K1, K1err)
-            print("K2, K2 min error:", K2, K2err)
-            return K1, K2
+        if step_size_1 > 0:
+            chi2P1, K1, K1err = self._chi2con(
+                diffs[:, k2min],
+                self.DoFs,
+                K1s,
+                range_str,
+                output_path,
+                P1=0.68,
+                comp="primary",
+                parb_size=parb_size,
+                display=display,
+            )
+        else:
+            K1 = K1s[0]
+            K1err = 0
+
+        print("K1, K1 min error:", K1, K1err)
+        print("K2, K2 min error:", K2, K2err)
+
+        return K1, K2

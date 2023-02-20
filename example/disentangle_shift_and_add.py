@@ -155,7 +155,7 @@ wave_grid_all = np.arange(w1_min, w2_max, delta_min)
 wave_grid_diff_cond_all = np.array(
     [(wave_grid_all > r[0]) * (wave_grid_all < r[1]) for r in ranges]
 )
-wavegrid = wave_grid_all[np.sum(wave_grid_diff_cond_all, axis=0).astype(bool)]
+wave_grid = wave_grid_all[np.sum(wave_grid_diff_cond_all, axis=0).astype(bool)]
 wave_ranges = [
     wave_grid_all[el.astype(bool)] for el in wave_grid_diff_cond_all
 ]
@@ -164,13 +164,12 @@ wave_ranges = [
 ##Initialize array of components
 comp_arr = [
     interpolate.interp1d(
-        wavegrid, np.zeros(len(wavegrid)), bounds_error=False, fill_value=0.0
+        wave_grid, np.zeros_like(wave_grid), bounds_error=False, fill_value=0.0
     )
 ] * comp_num
 
 
 # Initialize search arrays for K1, K2, K3, K4
-
 if dense_k_arr[0] == 1:
     K1s = np.array([orbital_params["K1"]])
 else:
@@ -213,7 +212,7 @@ if not os.path.exists(output_path):
 if grid_dis:
     # Compute RVs for comp1, comp2
     # Compute RVs for comp1, comp2
-    vrads1, vrads2 = v1_and_v2(nusdata, orbital_params)
+    vrads1, vrads2 = disentangler.v1_and_v2(nusdata, orbital_params)
     scaling_neb = np.ones(len(vrads1))
     kcount_extremeplot = np.argmin(np.abs(K1s - velo_plot_usr_K1_ext)) * len(
         K2s
@@ -221,11 +220,10 @@ if grid_dis:
     kcount_usr = np.argmin(np.abs(K1s - velo_plot_usr_K1)) * len(
         K2s
     ) + np.argmin(np.abs(K2s - velo_plot_usr_K2))
-    K1, K2 = Grid_disentangling2D(
-        waveranges,
+    K1, K2 = disentangler.grid_disentangling2D(
+        wave_ranges,
         nusdata,
         comp_arr[1],
-        orbital_params,
         K1s,
         K2s,
         obs_specs,
@@ -237,10 +235,11 @@ if grid_dis:
         phis_data,
         spec_names,
         range_str,
+        output_path,
         star_name,
         scaling_neb,
-        Ini="B",
-        ShowItr=False,
+        ini="B",
+        show_itr=False,
         inter_kind=inter_kind,
         itr_num_lim=itr_num_lim,
         PLOTCONV=PLOTCONV,
@@ -274,9 +273,9 @@ if K2 < 0:
 print("disentangling...., K1, K2:", orbital_params["K1"], orbital_params["K2"])
 vrads1, vrads2 = Disentangle.v1_and_v2(nusdata, orbital_params)
 itr_num_lim = num_itr_final
-neb_spec = np.zeros(len(wave_grid_all))
+neb_spec = np.zeros_like(wave_grid_all)
 dis_spec_vector, redchi2 = disentangler.disentangle(
-    np.zeros(len(wave_grid_all)),
+    np.zeros_like(wave_grid_all),
     vrads1,
     vrads2,
     wave_grid_all,
@@ -292,6 +291,7 @@ dis_spec_vector, redchi2 = disentangler.disentangle(
     phis_data,
     spec_names,
     range_str,
+    output_path,
     star_name,
     scaling_neb,
     neb_spec,
@@ -328,8 +328,8 @@ if comp_num == 4:
 
 
 lg_vec_1 = lguess_vec[1]
-_k1 = orbital_params["K1"]
-_k2 = orbital_params["K2"]
+_k1 = np.round(orbital_params["K1"], 3)
+_k2 = np.round(orbital_params["K2"], 3)
 
 filename_ending = f"{lg_vec_1}_{_k1}_{_k2}.txt"
 
@@ -346,16 +346,3 @@ if neb_lines:
         os.path.join(output_path, "NebDIS_lguess2_K1K2=" + filename_ending),
         np.c_[wave_grid_all, neb_spec],
     )
-
-plt.figure(1, figsize=(10, 6))
-plt.clf()
-plt.plot(wave_grid_all, A, label="dis A")
-plt.plot(wave_grid_all, B, label="dis B")
-if neb_lines:
-    plt.plot(wave_grid_all, neb_spec, label="dis Neb")
-
-plt.xlabel("Wavelength / A")
-plt.legend()
-plt.tight_layout()
-plt.savefig(os.path.join(output_path, "disentangled_spectra.png"))
-plt.show()
