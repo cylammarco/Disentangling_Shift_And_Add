@@ -1,3 +1,41 @@
+This is a modified version of the `Disentangling_Shift_And_Add` to allow simpler integration with a user's native workflow. This is working under a temporary codename `saad`, the acronym of **s**hift **a**nd **a**dd **disentangling**. No changes is made to the aource code of the algorithms.
+
+## Changes
+
+* The package is now installable (see below)
+* The four types of diagnostic plots can all be exported in a single workflow (though be careful with the volume of the output)
+* Users can choose the output path
+
+## To do
+
+* Diagnostic plots output type (png, jpg)
+* K1K2 grid histogram
+* K1K2 MCMC search
+
+## Installation
+
+To install with pip from github:
+
+    pip install git+https://github.com/cylammarco/Disentangling_Shift_And_Add
+
+or to install in editable mode:
+
+    git clone https://github.com/cylammarco/Disentangling_Shift_And_Add
+    pip install -e Disentangling_Shift_And_Add
+
+
+## Usage
+
+See the example folder for the slightly modified workflow. The example use case is identical to the original version.
+
+
+************************************************************************
+************************************************************************
+## The following is a copy of the original README.md as dated.
+************************************************************************
+************************************************************************
+
+
 # Disentangling_Shift_And_Add
 21.11.2022, V1.0;  contact: T.Shenar@uva.nl or tomer.shenar@gmail.com
 

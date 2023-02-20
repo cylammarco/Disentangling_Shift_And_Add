@@ -658,7 +658,7 @@ class Disentangle:
                     )
                     for i in np.arange(len(obs_specs))
                 ]
-                spec_mean = np.sum(
+                spec_mean_A = np.sum(
                     np.array(
                         [
                             weights[i]
@@ -675,7 +675,7 @@ class Disentangle:
                     axis=0,
                 )
             else:
-                spec_mean = np.sum(
+                spec_mean_A = np.sum(
                     np.array(
                         [
                             weights[i] * (Ss1[i] - BA_shifts[i](waves))
@@ -686,7 +686,7 @@ class Disentangle:
                 )
             A_new = interp1d(
                 waves,
-                spec_mean,
+                spec_mean_A,
                 bounds_error=False,
                 fill_value=0.0,
                 kind=inter_kind,
@@ -719,7 +719,7 @@ class Disentangle:
                     )
                     for i in np.arange(len(obs_specs))
                 ]
-                spec_mean = np.sum(
+                spec_mean_B = np.sum(
                     np.array(
                         [
                             weights[i]
@@ -736,7 +736,7 @@ class Disentangle:
                     axis=0,
                 )
             else:
-                spec_mean = np.sum(
+                spec_mean_B = np.sum(
                     np.array(
                         [
                             weights[i] * (Ss2[i] - AB_shifts[i](waves))
@@ -747,7 +747,7 @@ class Disentangle:
                 )
             B_new = interp1d(
                 waves,
-                spec_mean,
+                spec_mean_B,
                 bounds_error=False,
                 fill_value=0.0,
                 kind=inter_kind,
@@ -794,16 +794,16 @@ class Disentangle:
                     ),
                     axis=0,
                 )
-                neb_specnew = interp1d(
+                neb_spec_new = interp1d(
                     waves,
                     spec_mean,
                     bounds_error=False,
                     fill_value=0.0,
                     kind=inter_kind,
                 )(waves)
-                neb_specnew[neb_specnew < pos_lim_all[0]] = 0.0
-                eps_new = max(eps_new, np.sum(np.abs(neb_spec - neb_specnew)))
-                neb_spec = neb_specnew
+                neb_spec_new[neb_spec_new < pos_lim_all[0]] = 0.0
+                eps_new = max(eps_new, np.sum(np.abs(neb_spec - neb_spec_new)))
+                neb_spec = neb_spec_new
             if show_itr:
                 if itr % 100 == 0:
                     print(
