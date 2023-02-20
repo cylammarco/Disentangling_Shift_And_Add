@@ -1,17 +1,40 @@
-# Python plotting script; written by Julia Bodensteiner & extended Tomer Shenar
-# Type --legend for legend
-# Type --scatterr for scatter plot + errors
-# Other options exist, see script below...
-
-
-import sys
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 import astropy.io.fits as fits
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from astropy.table import Table
 from scipy import interpolate
+
+__all__ = [
+    "read_file",
+    "read_fits",
+    "read_NLA",
+    "read_psfSpec",
+    "read_pampelMUSE",
+    "read_MUSE",
+    "read_GIRAFFE",
+    "read_GIRAFFE2",
+    "read_HERMES",
+    "read_FEROS",
+    "read_XSHOOTER",
+    "read_COS",
+    "read_STIS",
+    "read_UVES",
+    "read_UVES_STITCH",
+    "read_tlusty",
+    "read_uvespop",
+    "read_hermes_normalized",
+    "read_ascii",
+    "read_xytable",
+    "cut_muse_specrange",
+    "mask_muse_laser",
+    "write_pampelmuse",
+    "write_hermes",
+    "write_extracted_spectrum",
+    "write_2Dimage",
+]
 
 
 def read_file(infile, col0=0, col1=1):
@@ -35,8 +58,8 @@ def read_file(infile, col0=0, col1=1):
 
     else:
         wave, flux = read_ascii(infile, col0, col1)
-
-    return wave, flux
+    flux = np.nan_to_num(flux, 1.0)
+    return np.array([wave, flux]).T
 
 
 def read_fits(infile):
@@ -48,7 +71,7 @@ def read_fits(infile):
         wave, flux = read_psfSpec(infile)
 
     elif "INSTRUME" in header:
-        ins = header["INSTRUME"]
+        ins = header["INSTRUME"].strip().upper()
         if ins == "MUSE":
             wave, flux = read_pampelMUSE(infile)
 
@@ -79,7 +102,7 @@ def read_fits(infile):
             wave, flux = read_HERMES(infile)
     else:
         wave, flux = read_HERMES(infile)
-
+    flux = np.nan_to_num(flux, 1.0)
     return wave, flux
 
 
@@ -88,9 +111,9 @@ def read_NLA(infile):
     header = fits.getheader(infile)
     data = hdul[0].data
     flux = data[0, :, :][0]
-    raw = data[1, :, :][0]
-    bkg = data[2, :, :][0]
-    sigma = data[3, :, :][0]
+    # raw = data[1, :, :][0]
+    # bkg = data[2, :, :][0]
+    # sigma = data[3, :, :][0]
     wl0 = header["CRVAL1"]
     delt = header["CD1_1"]
     pix = header["CRPIX1"]
@@ -165,8 +188,8 @@ def read_GIRAFFE(infile):
 def read_GIRAFFE2(infile):
     print("%s: Input file is a GIRAFFE2 file." % infile)
     hdunum = 1
-    header = fits.getheader(infile)
-    hdul = fits.open(infile)
+    # header = fits.getheader(infile)
+    # hdul = fits.open(infile)
     table = Table.read(infile, hdu=hdunum)
     wave = table["WAVE"][0] * 10.0
     flux = table["FLUX_REDUCED"][0]
@@ -214,8 +237,8 @@ def read_FEROS(infile):
 
 def read_XSHOOTER(infile):
     print("%s: Input file is a XSHOOTER file." % infile)
-    header = fits.getheader(infile)
-    hdul = fits.open(infile)
+    # header = fits.getheader(infile)
+    # hdul = fits.open(infile)
     table = Table.read(infile, hdu=1)
     wave = table["WAVE"][0]
     # flux = table['FLUX_REDUCED'][0]
@@ -231,8 +254,8 @@ def read_XSHOOTER(infile):
 
 def read_COS(infile):
     print("%s: Input file is a COS file." % infile)
-    header = fits.getheader(infile)
-    hdul = fits.open(infile)
+    # header = fits.getheader(infile)
+    # hdul = fits.open(infile)
     table = Table.read(infile, hdu=1)
     waves = table["WAVELENGTH"]
     fluxes = table["FLUX"]
@@ -260,8 +283,8 @@ def read_COS(infile):
 
 def read_STIS(infile):
     print("%s: Input file is a STIS file." % infile)
-    header = fits.getheader(infile)
-    hdul = fits.open(infile)
+    # header = fits.getheader(infile)
+    # hdul = fits.open(infile)
     table = Table.read(infile, hdu=1)
     # print table
     wave = table["WAVELENGTH"][0]
@@ -383,6 +406,14 @@ def read_ascii(infile, col0=0, col1=1):
     return wave, flux
 
 
+def read_xytable(infile):
+    print(("%s: Input file is an xytable file." % infile))
+    spec = (pd.read_csv(infile, sep=" ", header=0)).values
+    wave = spec[:, 0]
+    flux = spec[:, 1]
+    return wave, flux
+
+
 def cut_muse_specrange(wave, flux):
     # cut the spectrum to MUSE wavelength
     spec_range = (wave > 4600) & (wave < 9350)
@@ -435,80 +466,3 @@ def write_2Dimage(header, image, outfilename):
     hdul_new = fits.HDUList()
     hdul_new.append(fits.PrimaryHDU(data=image, header=header))
     hdul_new.writeto(outfilename)
-
-
-fig, ax = plt.subplots()
-
-Legend = False
-Binning = False
-ScatterErr = False
-Skip = False
-SkipTwice = False
-Norm = False
-for i in range(len(sys.argv) - 1):
-    print(i)
-    if Skip:
-        if SkipTwice:
-            Skip = True
-            SkipTwice = False
-        else:
-            Skip = False
-        continue
-    j = i + 1
-    if len(sys.argv) > 1:
-        if sys.argv[j] == "--legend":
-            Legend = True
-            continue
-        if sys.argv[j] == "--norm":
-            Norm = True
-            continue
-        if sys.argv[j] == "--scatterr":
-            ScatterErr = True
-            continue
-        if sys.argv[j] == "--cols":
-            col0 = float(sys.argv[j + 1])
-            col1 = float(sys.argv[j + 2])
-            Skip = True
-            SkipTwice = True
-            continue
-    infile = sys.argv[j]
-    try:
-        try:
-            wave_in, flux_in = read_file(infile, col0, col1)
-        except:
-            wave_in, flux_in = read_file(infile)
-        flux_in = np.nan_to_num(flux_in, 1.0)
-    except:
-        continue
-    try:
-        wave_in = wave_in.astype(float)
-        flux_in = flux_in.astype(float)
-    except:
-        wave_in, flux_in = np.loadtxt(infile, unpack=True)
-    if len(flux_in) == 2:
-        flux = flux_in[0]
-        err = flux_in[1]
-    else:
-        flux = flux_in
-    if Norm:
-        flux /= np.mean(flux)
-    # Do the plotting
-    name = str(infile).split(".fits")[0]
-    if ScatterErr:
-        ax.errorbar(
-            wave_in,
-            flux,
-            yerr=np.loadtxt(infile)[:, 2],
-            fmt="o",
-            linewidth=1.0,
-            alpha=0.8,
-            label=name,
-        )
-    else:
-        ax.plot(wave_in, flux, linewidth=1.0, alpha=0.8, label=name)
-if Legend:
-    ax.legend()
-ax.set_xlabel("Wavelength [A]")
-ax.set_ylabel("Flux")
-plt.show()
-# np.savetxt(infile + '.txt', np.c_[wave_in, flux])

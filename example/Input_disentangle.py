@@ -10,13 +10,17 @@ import numpy as np
 
 
 # Name of object (just for file names)
-StarName = "Test"
+star_name = "Test"
 
 # Path to data (folder where all spectra are stored):
-ObsPath = "obs/"
+obs_path = "obs"
+
+# Path to output
+output_path = "Output"
+
 
 ### Type of data format. There are two options:
-### OPTION 1: ObsFormat = 'TXT'
+### OPTION 1: obs_format = 'TXT'
 ### assumes that the observations are in ascii format, each file containing 2-column tables of wave & normalised flux.
 ### In addition, the observation directory MUST contain a file called 'ObsDat.txt', which has the following format:
 ###   MJD          obsname
@@ -24,7 +28,7 @@ ObsPath = "obs/"
 ###   yyy           NAME2
 ###   ...           ...
 ### The paths should be either absolute or relative to the directory in which the script is stored.
-### OPTION 2: ObsFormat = 'FITS'
+### OPTION 2: obs_format = 'FITS'
 ### The script will look for ALL fits files in the given directory.
 ### The script will attempt to retrieve the dates from the fits headers using a user-specified header keyword
 ### IMPORTANT NOTES:
@@ -32,10 +36,11 @@ ObsPath = "obs/"
 ### 2. For the "fits" option, I include a few built-in functions to read e.g. HERMES, X-SHOOTER, FEROS spectra....
 ### User should feel free to update the reading of the files!
 
-ObsFormat = "TXT"
+obs_format = "TXT"
+obs_data_filename = "ObsDat.txt"
 
-# Only important if ObsFormat='FITS'
-MJDHeader = "MJD-OBS"
+# Only important if obs_format='FITS'
+mjd_header_keyword = "MJD-OBS"
 
 
 ###############################
@@ -45,7 +50,7 @@ MJDHeader = "MJD-OBS"
 
 # Number of components; currently possible only 2 components
 # up to four components in upcoming version
-CompNum = 2
+comp_num = 2
 
 
 # Orbital parameters
@@ -53,7 +58,7 @@ CompNum = 2
 ### K1, K2 can be explored via chi2 if required by the user, but initial guesses should be given.
 ### Important: omega is defined via vr(1) = Gamma1 + K1*(cos(nu) + ecc * cos(omega) )
 ### If results don't make sense, your best bet is to set omega --> omega + pi
-Orbital_Params = {
+orbital_params = {
     ####### MUST BE FILLED BELOW ALWAYS (inner binary) ######
     "Period": 473.0,
     "T0": 0.0,
@@ -80,10 +85,10 @@ Orbital_Params = {
 
 
 # Vector of light ratios, [l2, l3, l4], i.e. flux_i / sum(flux). Assumed constant throughout range.
-lguessVec = [0.3, 0.0, 0.0]
+lguess_vec = [0.3, 0.0, 0.0]
 
 
-lguess1 = 1.0 - np.sum(lguessVec)
+lguess1 = 1.0 - np.sum(lguess_vec)
 
 
 # Where to measure S2N, only important for  defining continuum and weighting of spectra when co-adding (not critical)
@@ -99,15 +104,15 @@ S2Nred = 4165
 # Run grid disentangling?
 # If TRUE: will conduct grid disentangling and derive Ks
 # If FALSE: will only peform separation using input K1,K2
-GridDis = False
+grid_dis = False
 
 # Define grid search (only important if GridDis = True).
 # For setting K1, K2, K3, K4 search arrays: Karr = np.arange(IniFacK*K, FinFacK*K, Dense)
 # Current version only works for first two columns (K1, K2)
-# If DenseKArr[i] = 1, then the search is "1D", i.e. K is fixed to the value specified by the user.
-DenseKArr = [15, 15, 1, 1]
-IniFacKArr = [0.1, 0.1, 0.3, 0.3]
-FinFacKArr = [2.0, 2.0, 2.0, 2.0]
+# If dense_k_arr[i] = 1, then the search is "1D", i.e. K is fixed to the value specified by the user.
+dense_k_arr = [15, 15, 1, 1]
+ini_fac_k_arr = [0.1, 0.1, 0.3, 0.3]
+fin_fac_k_arr = [2.0, 2.0, 2.0, 2.0]
 
 
 # Number of iterations
@@ -115,45 +120,45 @@ FinFacKArr = [2.0, 2.0, 2.0, 2.0]
 ### 1. Ideally convergence could be determined via a condition on EPS (See above). However, a suitable condition could not yet be developed
 ### --> User needs to judge when results are "sufficiently converged", by either comparing the results for different itr numbers, or using
 ###     options below.
-### 2. itrnumlim is the number of iterations per K1,K2 pair; NumItrFinal is the number of iterations for the final separation,
-###    after K1, K2 have been derived / set. Often, itrnumlim < NumItrFinal, for speed, and since individual iterations occur on individual lines.
+### 2. itr_num_lim is the number of iterations per K1,K2 pair; num_itr_final is the number of iterations for the final separation,
+###    after K1, K2 have been derived / set. Often, itr_num_lim < num_itr_final, for speed, and since individual iterations occur on individual lines.
 ### 3. See documentation for tips and insights about number of iterations.
 
-itrnumlim = 50
-NumItrFinal = 1000
+itr_num_lim = 50
+num_itr_final = 1000
 
 
-# If StrictNegA = True, enforce disentangled spectra to be below continuum except for prespecified regions (given in array).
-# Below continuum = ForceNegSigma "sigmas" below continuum.
+# If strict_neg_A = True, enforce disentangled spectra to be below continuum except for prespecified regions (given in array).
+# Below continuum = force_neg_sigma "sigmas" below continuum.
 # HIGHLY RECOMMENDED for OB-type stars -- otherwise, output often exhibits cosmetic "wings" and continuum offsets.
 # For WR stars typically "False" is better.
 # "Positive regions" should be regions with expected emission lines etc. For WR stars,
 
-ForceNegSigma = 2.0
+force_neg_sigma = 2.0
 
-StrictNegA = True
+strict_neg_A = True
 
-# Only relevant if StrictNegA=True
-PosLimCondA = np.array([[3968.0, 3969.0]])
+# Only relevant if strict_neg_A=True
+pos_lim_cond_A = np.array([[3968.0, 3969.0]])
 
-# Same as StrictNegA for secondary
-StrictNegB = True
+# Same as strict_neg_A for secondary
+strict_neg_B = True
 
-PosLimCondB = np.array([[3968.0, 3969.0]])
+pos_lim_cond_B = np.array([[3968.0, 3969.0]])
 
-# Same as StrictNegA for tertiary
-StrictNegC = True
+# Same as strict_neg_A for tertiary
+strict_neg_C = True
 
-PosLimCondC = np.array([[3968.0, 3969.0]])
+pos_lim_cond_C = np.array([[3968.0, 3969.0]])
 
-# Same as StrictNegA for fourth companion
-StrictNegD = True
+# Same as strict_neg_A for fourth companion
+strict_neg_D = True
 
-PosLimCondD = np.array([[3968.0, 3969.0]])
+pos_lim_cond_D = np.array([[3968.0, 3969.0]])
 
 
 # Define regions where the solution is allowed to be above continuum (where emission is expected)
-PosLimCondNeb = np.array(
+pos_lim_cond_Neb = np.array(
     [
         [3968.0, 3971.0],
         [4025.0, 4027.0],
@@ -182,28 +187,28 @@ PosLimCondNeb = np.array(
 
 # Plot fits between disentangled spectra, their sum, and the observations at RV extremes.
 # Highly recommended for sanity checks and presentation in papers.
-# The plot is shown for the K1, K2 pair most closely matching (Velo_plot_usrK1_ext, Velo_plot_usrK2_ext, ...) given by the user.
+# The plot is shown for the K1, K2 pair most closely matching (velo_plot_usr_K1_ext, velo_plot_usr_K2_ext, ...) given by the user.
 # Recommended: True
 PLOTEXTREMES = True
-Velo_plot_usrK1_ext = Orbital_Params["K1"]
-Velo_plot_usrK2_ext = Orbital_Params["K2"]
-Velo_plot_usrK3_ext = Orbital_Params["K3"]
-Velo_plot_usrK4_ext = Orbital_Params["K4"]
+velo_plot_usr_K1_ext = orbital_params["K1"]
+velo_plot_usr_K2_ext = orbital_params["K2"]
+velo_plot_usr_K3_ext = orbital_params["K3"]
+velo_plot_usr_K4_ext = orbital_params["K4"]
 
 # line width and figsize for "Extreme plots"
-linewidExt = 7
-ExtremesFigSize = (7, 7)
+line_wid_ext = 7
+extremes_fig_size = (7, 7)
 
 
 # Plot fits between disentangled spectra, their sum, and each epoch of observation.
 # Useful to examine all data; rather tedious but important for critical systems (e.g., black holes!)
-# The plot is shown for the K1, K2 pair most closely matching (Velo_plot_usrK1, Velo_plot_usrK2) given by the user.
+# The plot is shown for the K1, K2 pair most closely matching (velo_plot_usr_K1, velo_plot_usr_K2) given by the user.
 # Recommended: False
 PLOTFITS = False
-Velo_plot_usrK1 = Orbital_Params["K1"]
-Velo_plot_usrK2 = Orbital_Params["K2"]
-Velo_plot_usrK3 = Orbital_Params["K3"]
-Velo_plot_usrK4 = Orbital_Params["K4"]
+velo_plot_usr_K1 = orbital_params["K1"]
+velo_plot_usr_K2 = orbital_params["K2"]
+velo_plot_usr_K3 = orbital_params["K3"]
+velo_plot_usr_K4 = orbital_params["K4"]
 
 # Plot convergence plot
 # If True, will produce converge plot, i.e. EPS vs. itr for each run.
@@ -212,19 +217,19 @@ Velo_plot_usrK4 = Orbital_Params["K4"]
 PLOTCONV = False
 
 
-# Plot disentangled spectra after each "N_Iteration_Plot" iterations; helpful for judging convergence.
+# Plot disentangled spectra after each "n_iteration_plot" iterations; helpful for judging convergence.
 # Recommended: False
 PLOTITR = False
-N_Iteration_Plot = 100
+n_iteration_plot = 100
 
 
 # Type of interpolation in interp1d (see python doc for options);
 # 'linear' can lead to artificial increase of S/N due to interpolation
 # 'cubic' performs better, but is slower.
-InterKind = "linear"
+inter_kind = "linear"
 
 # Region for fitting parabola of chi2 in index steps from minimum
-ParbSize = 3
+parb_size = 3
 
 
 ################################
@@ -233,8 +238,8 @@ ParbSize = 3
 
 # User chooses in which line/lines the K1,K2 search should occur.
 # All that is required is:
-# 1. Ranges = [ [l1, l2], [l3, l4], ...]
-# 2. Rangestr = 'xxx' -- used below to pick range, but either way, needs to be specified for file-saving purposes.
+# 1. ranges = [ [l1, l2], [l3, l4], ...]
+# 2. range_str = 'xxx' -- used below to pick range, but either way, needs to be specified for file-saving purposes.
 # For convenience, typical lines (for massive stars) are provided below.
 # USERS: feel free to edit wavelength regions below!!!
 # IMPORTANT: the final ranges used/plotted are NOT identical to those provided by the user: the script reduces them to ensure that edge issues are avoided.
@@ -242,147 +247,147 @@ ParbSize = 3
 # Ideally, disentangled region should be line-dominated (to enhance the signal on chi2), but certainly reach continuum at the edges.
 
 
-# Rangestr = 'Hdelta'
-# Rangestr = 'Hgamma'
-# Rangestr = 'Hbeta'
-# Rangestr = 'Halpha'
-# Rangestr = 'Balmer'
-# Rangestr = 'Balmer_noHalpha'
-# Rangestr = 'HeI'
-Rangestr = "HeI4472"
-# Rangestr = 'HeI4122'
-# Rangestr = 'HeI4009'
-# Rangestr = 'HeI4026'
-# Rangestr = 'HeI4144'
-# Rangestr = 'HeII4200'
-# Rangestr = 'HeI4388'
-# Rangestr = 'HeII4546'
-# Rangestr = 'HeI5878'
-# Rangestr = '4120Region'
-# Rangestr = '4020Region'
-# Rangestr = 'IronEmission'
-# Rangestr = 'OIII'
-# Rangestr = 'OIII8446'
-# Rangestr = 'HI8367'
-# Rangestr = 'Fe4584'
-# Rangestr = 'Fe5168'
-# Rangestr = 'Fe5192'
-# Rangestr = 'Fe5234'
-# Rangestr = 'Fe5275'
-# Rangestr = 'Fe5316'
-##Rangestr = 'Fe5362'
-# Rangestr = 'AllHeI'
-# Rangestr = 'AllHeII'
-# Rangestr = 'AllHe'
-# Rangestr = 'Indiv'
+# range_str = 'Hdelta'
+# range_str = 'Hgamma'
+# range_str = 'Hbeta'
+# range_str = 'Halpha'
+# range_str = 'Balmer'
+# range_str = 'Balmer_noHalpha'
+# range_str = 'HeI'
+range_str = "HeI4472"
+# range_str = 'HeI4122'
+# range_str = 'HeI4009'
+# range_str = 'HeI4026'
+# range_str = 'HeI4144'
+# range_str = 'HeII4200'
+# range_str = 'HeI4388'
+# range_str = 'HeII4546'
+# range_str = 'HeI5878'
+# range_str = '4120Region'
+# range_str = '4020Region'
+# range_str = 'IronEmission'
+# range_str = 'OIII'
+# range_str = 'OIII8446'
+# range_str = 'HI8367'
+# range_str = 'Fe4584'
+# range_str = 'Fe5168'
+# range_str = 'Fe5192'
+# range_str = 'Fe5234'
+# range_str = 'Fe5275'
+# range_str = 'Fe5316'
+##range_str = 'Fe5362'
+# range_str = 'AllHeI'
+# range_str = 'AllHeII'
+# range_str = 'AllHe'
+# range_str = 'Indiv'
 
 ##### Define ranges corresponding too the strings above.... CHANGE IF NEEDED
 
-RangeHa = [6553, 6570.0]
-RangeHb = [4840, 4877.0]
-RangeHg = [4310.0, 4370.0]
-RangeHd = [4070, 4140.0]
-RangeHeI5878 = [5869.0, 5881.0]
-RangeHeI4472 = [4457.0, 4489.0]
-RangeHeI4144 = [4120.0, 4170.0]
-RangeOIIIJulia = [7760.0, 7785.0]
-RangeFe4584 = [4580, 4588]
-RangeFe4584 = [4580, 4586]
-RangeFe5168 = [5162, 5174]
-RangeFe5192 = [5190.0, 5205]
-RangeFe5234 = [5230.0, 5240]
-RangeFe5275 = [5268, 5282.0]
-RangeFe5316 = [5310.0, 5322.0]
-RangeFe5362 = [5358.0, 5367.0]
-RangeOIII8446 = [8438.0, 8455.0]
-RangeHI8367 = [8367.0, 8500.0]
-RangeHeI4122 = [4115.0, 4127.0]
-RangeHeI4009 = [4003.0, 4018.0]
-RangeHeI4026 = [4000.0, 4050.0]
-RangeHeI4388 = [4365, 4410.0]
-RangeHeII4545 = [4515.0, 4565.0]
-RangeHeII4200 = [4185.0, 4215.0]
+range_Ha = [6553, 6570.0]
+range_Hb = [4840, 4877.0]
+range_Hg = [4310.0, 4370.0]
+range_Hd = [4070, 4140.0]
+range_HeI5878 = [5869.0, 5881.0]
+range_HeI4472 = [4457.0, 4489.0]
+range_HeI4144 = [4120.0, 4170.0]
+range_OIIIJulia = [7760.0, 7785.0]
+range_Fe4584 = [4580, 4588]
+range_Fe4584 = [4580, 4586]
+range_Fe5168 = [5162, 5174]
+range_Fe5192 = [5190.0, 5205]
+range_Fe5234 = [5230.0, 5240]
+range_Fe5275 = [5268, 5282.0]
+range_Fe5316 = [5310.0, 5322.0]
+range_Fe5362 = [5358.0, 5367.0]
+range_OIII8446 = [8438.0, 8455.0]
+range_HI8367 = [8367.0, 8500.0]
+range_HeI4122 = [4115.0, 4127.0]
+range_HeI4009 = [4003.0, 4018.0]
+range_HeI4026 = [4000.0, 4050.0]
+range_HeI4388 = [4365, 4410.0]
+range_HeII4545 = [4515.0, 4565.0]
+range_HeII4200 = [4185.0, 4215.0]
 
-# Define "Ranges" list based on user's choices from above.
+# Define "ranges" list based on user's choices from above.
 
-if Rangestr == "Hgamma":
-    Ranges = [RangeHg]
-elif Rangestr == "Hbeta":
-    Ranges = [RangeHb]
-elif Rangestr == "Halpha":
-    Ranges = [RangeHa]
-elif Rangestr == "Balmer":
-    Ranges = [RangeHd, RangeHg, RangeHb, RangeHa]
-elif Rangestr == "Balmer_noHalpha":
-    Ranges = [RangeHd, RangeHg, RangeHb]
-elif Rangestr == "HeI":
-    Ranges = [
-        RangeHeI4009,
-        RangeHeI4026,
-        RangeHeI4122,
-        RangeHeI4144,
-        RangeHeI4388,
-        RangeHeI4472,
+if range_str == "Hgamma":
+    ranges = [range_Hg]
+elif range_str == "Hbeta":
+    ranges = [range_Hb]
+elif range_str == "Halpha":
+    ranges = [range_Ha]
+elif range_str == "Balmer":
+    ranges = [range_Hd, range_Hg, range_Hb, range_Ha]
+elif range_str == "Balmer_noHalpha":
+    ranges = [range_Hd, range_Hg, range_Hb]
+elif range_str == "HeI":
+    ranges = [
+        rangeHeI4009,
+        rangeHeI4026,
+        rangeHeI4122,
+        rangeHeI4144,
+        rangeHeI4388,
+        rangeHeI4472,
     ]
-elif Rangestr == "Hdelta":
-    Ranges = [RangeHd]
-elif Rangestr == "HeI4472":
-    Ranges = [RangeHeI4472]
-elif Rangestr == "HeI5878":
-    Ranges = [RangeHeI5878]
-elif Rangestr == "HeI4144":
-    Ranges = [RangeHeI4144]
-elif Rangestr == "HeII4200":
-    Ranges = [RangeHeII4200]
-elif Rangestr == "4120Region":
-    Ranges = [RangeHeI4144]
-elif Rangestr == "IronEmission":
-    Ranges = [RangeFe5168, RangeFe5192, RangeFe5275, RangeFe5316]
-elif Rangestr == "Fe4584":
-    Ranges = [RangeFe4584]
-elif Rangestr == "Fe5168":
-    Ranges = [RangeFe5168]
-elif Rangestr == "Fe5192":
-    Ranges = [RangeFe5192]
-elif Rangestr == "Fe5234":
-    Ranges = [RangeFe5234]
-elif Rangestr == "Fe5275":
-    Ranges = [RangeFe5275]
-elif Rangestr == "Fe5316":
-    Ranges = [RangeFe5316]
-elif Rangestr == "Fe5362":
-    Ranges = [RangeFe5362]
-elif Rangestr == "OIII":
-    Ranges = [RangeOIIIJulia]
-elif Rangestr == "OIII8446":
-    Ranges = [RangeOIII8446]
-elif Rangestr == "HI8367":
-    Ranges = [RangeHI8367]
-elif Rangestr == "HeI4122":
-    Ranges = [RangeHeI4122]
-elif Rangestr == "HeI4009":
-    Ranges = [RangeHeI4009]
-elif Rangestr == "HeI4026":
-    Ranges = [RangeHeI4026]
-elif Rangestr == "HeI4388":
-    Ranges = [RangeHeI4388]
-elif Rangestr == "HeII4546":
-    Ranges = [RangeHeII4545]
-elif Rangestr == "AllHe":
-    Ranges = [RangeHeI4026, RangeHeII4200, RangeHeI4472, RangeHeII4545]
-elif Rangestr == "AllHeI":
-    # Ranges = [RangeHeI4026, RangeHeI4388, RangeHeI4472]
-    Ranges = [
-        RangeHeI4026,
-        RangeHeI4144,
-        RangeHeI4388,
-        RangeHeI4472,
-        RangeHeII4545,
+elif range_str == "Hdelta":
+    ranges = [range_Hd]
+elif range_str == "HeI4472":
+    ranges = [range_HeI4472]
+elif range_str == "HeI5878":
+    ranges = [range_HeI5878]
+elif range_str == "HeI4144":
+    ranges = [range_HeI4144]
+elif range_str == "HeII4200":
+    ranges = [range_HeII4200]
+elif range_str == "4120Region":
+    ranges = [range_HeI4144]
+elif range_str == "IronEmission":
+    ranges = [range_Fe5168, range_Fe5192, range_Fe5275, range_Fe5316]
+elif range_str == "Fe4584":
+    ranges = [range_Fe4584]
+elif range_str == "Fe5168":
+    ranges = [range_Fe5168]
+elif range_str == "Fe5192":
+    ranges = [range_Fe5192]
+elif range_str == "Fe5234":
+    ranges = [range_Fe5234]
+elif range_str == "Fe5275":
+    ranges = [range_Fe5275]
+elif range_str == "Fe5316":
+    ranges = [range_Fe5316]
+elif range_str == "Fe5362":
+    ranges = [range_Fe5362]
+elif range_str == "OIII":
+    ranges = [range_OIIIJulia]
+elif range_str == "OIII8446":
+    ranges = [range_OIII8446]
+elif range_str == "HI8367":
+    ranges = [range_HI8367]
+elif range_str == "HeI4122":
+    ranges = [range_HeI4122]
+elif range_str == "HeI4009":
+    ranges = [range_HeI4009]
+elif range_str == "HeI4026":
+    ranges = [range_HeI4026]
+elif range_str == "HeI4388":
+    ranges = [range_HeI4388]
+elif range_str == "HeII4546":
+    ranges = [range_HeII4545]
+elif range_str == "AllHe":
+    ranges = [range_HeI4026, range_HeII4200, range_HeI4472, range_HeII4545]
+elif range_str == "AllHeI":
+    # ranges = [range_HeI4026, range_HeI4388, range_HeI4472]
+    ranges = [
+        range_HeI4026,
+        range_HeI4144,
+        range_HeI4388,
+        range_HeI4472,
+        range_HeII4545,
     ]
-elif Rangestr == "AllHeII":
-    Ranges = [RangeHeII4200, RangeHeII4545]
-elif Rangestr == "Indiv":
-    Ranges = [RangeHeII4200, RangeHeI4472]
+elif range_str == "AllHeII":
+    ranges = [range_HeII4200, range_HeII4545]
+elif range_str == "Indiv":
+    ranges = [range_HeII4200, range_HeI4472]
 
 
 ################################
@@ -391,12 +396,12 @@ elif Rangestr == "Indiv":
 
 
 # Clean cosmics?
-CleanCos = False
+clean_cos = False
 
 
-# Renormalise spectra at pre-specified points.
-Renormalise = False
-NormPoints = [
+# renormalise spectra at pre-specified points.
+renormalise = False
+norm_points = [
     3961.0,
     4006.0,
     4016.0,
@@ -421,7 +426,7 @@ NormPoints = [
 ]
 
 # Nebular line handling?
-NebLines = False
+neb_lines = False
 
 
 ####################
