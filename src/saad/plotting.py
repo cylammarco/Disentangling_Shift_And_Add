@@ -240,9 +240,10 @@ def plot_k1k2(
         tickchi = np.arange(0.6, 1.0, 0.01)
         cbar.ax.set_ylabel(r"$\chi_{\rm reduced}^2$", size=12)
         plt.title(fileK1K2)
-        plt.savefig(fileK1K2[:-4] + "_2Dmap.pdf", bbox_inches="tight")
+        plt.savefig(fileK1K2[:-4] + "_2Dmap.{fig_type}", bbox_inches="tight")
         if display:
             plt.show()
+        plt.close()
 
 
 def plot_input_spectrum():
@@ -324,6 +325,7 @@ def plot_input_spectrum():
         ax.set_ylabel("Flux")
     if display:
         plt.show()
+    plt.close()
 
 
 def plot_chi2(
@@ -337,11 +339,11 @@ def plot_chi2(
     K_label,
     output_path,
     filename,
-    display,
+    display=False,
+    fig_type="png",
 ):
     plt.figure(figsize=(6, 6))
     plt.clf()
-    plt.scatter(Ks_comp, redchi2, s=2)
     plt.scatter(Ks_comp, chi2 / nu, s=2)
     plt.plot(chi2fine, parb, color="C1")
     plt.plot(
@@ -354,12 +356,13 @@ def plot_chi2(
     plt.xlabel(f"${{{K_label}}}$ [km/s]")
     plt.legend()
     plt.savefig(
-        os.path.join(output_path, filename),
+        os.path.join(output_path, filename + f".{fig_type}"),
         bbox_inches="tight",
     )
 
     if display:
         plt.show()
+    plt.close()
 
 
 def plot_best_fit(
@@ -373,6 +376,7 @@ def plot_best_fit(
     output_path,
     star_name,
     display=False,
+    fig_type="png",
 ):
     plt.figure(figsize=(12, 8))
     plt.clf()
@@ -387,10 +391,11 @@ def plot_best_fit(
         label=label_name,
     )
     plt.legend()
-    file_name = f"{star_name}_disentangled_spectra.pdf"
+    file_name = f"{star_name}_disentangled_spectra.{fig_type}"
     plt.savefig(os.path.join(output_path, file_name), bbox_inches="tight")
     if display:
         plt.show()
+    plt.close()
 
 
 def plot_extremes(
@@ -414,10 +419,12 @@ def plot_extremes(
     extremes_fig_size=(8, 8),
     line_wid_ext=2,
     display=False,
+    fig_type="png",
 ):
-    fig_extremes, axes = plt.subplots(
-        nrows=2, ncols=1, figsize=extremes_fig_size
-    )
+    fig_extremes = plt.figure(figsize=extremes_fig_size)
+    axes = []
+    axes.append(fig_extremes.add_subplot(211))
+    axes.append(fig_extremes.add_subplot(212))
 
     for panel in range(2):
         axes[panel].plot(
@@ -461,34 +468,49 @@ def plot_extremes(
         )
         axes[panel].set_ylabel("Normalised flux")
         axes[panel].set_ylim(plt_ext_ymin[panel], plt_ext_ymax[panel])
+        """
         diff_major = int((waves[-1] - waves[0]) / 3)
         axes[panel].xaxis.set_major_locator(MultipleLocator(diff_major))
         axes[panel].xaxis.set_minor_locator(MultipleLocator(diff_major / 5.0))
         axes[panel].yaxis.set_minor_locator(MultipleLocator(0.01))
+        """
 
     file_name = f"{star_name}_{range_str}_Extremes_"
-    file_name += f"{np.round(K1now[panel])}_{np.round(K2now[panel])}.pdf"
+    file_name += f"{np.around(K1now[panel], decimals=2)}_{np.around(K2now[panel], decimals=2)}.{fig_type}"
     plt.savefig(os.path.join(output_path, file_name), bbox_inches="tight")
 
     if display:
         plt.show()
 
+    plt.close()
 
-def plot_convergence(eps_itr, output_path, star_name, display=False):
+
+def plot_convergence(
+    eps_itr, output_path, star_name, display=False, fig_type="png"
+):
     plt.figure()
     plt.clf()
     plt.scatter(np.arange(len(eps_itr)), eps_itr, color="C0", s=2)
     plt.ylabel("log(Eps)")
     plt.xlabel("iteration number")
     plt.tight_layout()
-    file_name = f"{star_name}_convergence.pdf"
+    file_name = f"{star_name}_convergence.{fig_type}"
     plt.savefig(os.path.join(output_path, file_name), bbox_inches="tight")
     if display:
         plt.show()
+    plt.close()
 
 
 def plot_iteration(
-    itr, waves, A, B, neb_spec, output_path, star_name, display=False
+    itr,
+    waves,
+    A,
+    B,
+    neb_spec,
+    output_path,
+    star_name,
+    display=False,
+    fig_type="png",
 ):
     plt.figure()
     plt.clf()
@@ -500,7 +522,8 @@ def plot_iteration(
     plt.xlabel("Wavelength")
     plt.tight_layout()
     plt.legend()
-    file_name = f"{star_name}_iteration_{itr}.pdf"
+    file_name = f"{star_name}_iteration_{itr}.{fig_type}"
     plt.savefig(os.path.join(output_path, file_name), bbox_inches="tight")
     if display:
         plt.show()
+    plt.close()

@@ -28,7 +28,7 @@ def clean_cosmic_ray(
     spec_clean = copy.deepcopy(spec)
 
     for itr in range(max_iter):
-        print(f"Cosmic ray cleaning, iteration {itr} of {max_iter}.")
+        print(f"Cosmic ray cleaning, iteration {itr+1} of {max_iter}.")
 
         # masking out regions NOT to be cleaned
         for wrange in forbidden_ranges:

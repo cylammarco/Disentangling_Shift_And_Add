@@ -5,12 +5,17 @@ This is a modified version of the `Disentangling_Shift_And_Add` to allow simpler
 * The package is now installable (see below)
 * The four types of diagnostic plots can all be exported in a single workflow (though be careful with the volume of the output)
 * Users can choose the output path
+* Users can choose between spectral resampling and interpolation
+* Automatically strip nan and inf in input
+* Interpolation is now using numpy.interp for linear interpolation, scipy.interpolate.CubicSpline for cubic interpolation
+* Users can choose diagnostic plots output type (e.g. pdf, png, jpg)
 
 ## To do
 
-* Diagnostic plots output type (png, jpg)
 * K1K2 grid histogram
 * K1K2 MCMC search
+* Change the config file from `Input_disentangle.py` to a yaml
+* Move ranges and ranges_str to a dictionary
 
 ## Installation
 

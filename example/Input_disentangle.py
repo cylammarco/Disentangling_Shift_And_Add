@@ -42,6 +42,8 @@ obs_data_filename = "ObsDat.txt"
 # Only important if obs_format='FITS'
 mjd_header_keyword = "MJD-OBS"
 
+# Figure format
+fig_type = "png"
 
 ###############################
 ##### SYSTEM PROPERTIES #######
@@ -107,12 +109,12 @@ S2Nred = 4165
 grid_dis = True
 
 # Define grid search (only important if GridDis = True).
-# For setting K1, K2, K3, K4 search arrays: Karr = np.arange(IniFacK*K, FinFacK*K, Dense)
+# For setting K1, K2, K3, K4 search arrays: Karr = np.arange(ini_fac_K*K, fin_fac_K*K, Dense)
 # Current version only works for first two columns (K1, K2)
-# If dense_k_arr[i] = 1, then the search is "1D", i.e. K is fixed to the value specified by the user.
+# If dense_K_arr[i] = 1, then the search is "1D", i.e. K is fixed to the value specified by the user.
 dense_k_arr = [10, 10, 1, 1]
-ini_fac_k_arr = [0.1, 0.1, 0.3, 0.3]
-fin_fac_k_arr = [2.0, 2.0, 2.0, 2.0]
+ini_fac_K_arr = [0.1, 0.1, 0.3, 0.3]
+fin_fac_K_arr = [2.0, 2.0, 2.0, 2.0]
 
 
 # Number of iterations

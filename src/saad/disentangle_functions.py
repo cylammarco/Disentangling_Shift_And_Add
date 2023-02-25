@@ -13,8 +13,9 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.interpolate import interp1d
+from scipy.interpolate import CubicSpline, interp1d
 from scipy.special import gammainc
+from spectres import spectres
 
 from .plotting import (
     plot_best_fit,
@@ -33,7 +34,13 @@ class Disentangle:
         self.clight = 2.9979e5
 
         # reference to the input
-        self.spec_list = spec_list
+        self.spec_list = []
+        for _spec in spec_list:
+            wave = _spec[:, 0]
+            flux = _spec[:, 1]
+            mask = np.isnan(flux) | ~np.isfinite(flux)
+            _spec = np.column_stack((wave[mask], flux[mask]))
+            self.spec_list.append(_spec)
 
         # store the orbital parameters
         self.orbital_params = orbital_params
@@ -95,6 +102,7 @@ class Disentangle:
         comp="secondary",
         parb_size=3,
         display=False,
+        fig_type="png",
     ):
         if comp == "secondary":
             K_name = "K2"
@@ -169,6 +177,7 @@ class Disentangle:
             output_path,
             fig_filename,
             display,
+            fig_type,
         )
 
         return chi2P1, K2min, K2err
@@ -241,6 +250,7 @@ class Disentangle:
         output_path,
         star_name,
         scaling_neb,
+        interpolate=False,
         resid=False,
         reduce=False,
         show_itr=False,
@@ -255,6 +265,7 @@ class Disentangle:
         kcount_usr=0,
         extremes_fig_size=(8, 8),
         display=False,
+        fig_type="png",
     ):
         RV_ext_max_ind, RV_ext_min_ind = np.argmax(vrA), np.argmin(vrA)
         A, B, neb_spec = dis_spec_vector
@@ -279,31 +290,29 @@ class Disentangle:
             plot_min_yarr = []
             plot_max_yarr = []
             for ind in np.arange(len(obs_specs)):
-                plot_min_yarr.append(
-                    np.amin(
-                        interp1d(
-                            obs_specs[ind][:, 0],
-                            obs_specs[ind][:, 1] - 1,
-                            bounds_error=False,
-                            fill_value=0.0,
-                        )(waves[wave_calc_cond])
+                if interpolate:
+                    _new_spec = interp1d(
+                        obs_specs[ind][:, 0],
+                        obs_specs[ind][:, 1] - 1,
+                        bounds_error=False,
+                        fill_value=0.0,
+                    )(waves[wave_calc_cond])
+                else:
+                    _new_spec = spectres(
+                        waves[wave_calc_cond],
+                        obs_specs[ind][:, 0],
+                        obs_specs[ind][:, 1] - 1,
+                        fill=0.0,
                     )
-                )
-                plot_max_yarr.append(
-                    np.amax(
-                        interp1d(
-                            obs_specs[ind][:, 0],
-                            obs_specs[ind][:, 1] - 1,
-                            bounds_error=False,
-                            fill_value=0.0,
-                        )(waves[wave_calc_cond])
-                    )
-                )
-            plot_min_yarr.append(min(A))
-            plot_min_yarr.append(min(B))
-            plot_max_yarr.append(max(A))
-            plot_max_yarr.append(max(B))
-            plt_ext_ymin = min(plot_min_yarr) * 1.1
+
+                plot_min_yarr.append(np.amin(_new_spec))
+                plot_max_yarr.append(np.amax(_new_spec))
+
+            plot_min_yarr.append(np.nanpercentile(A, 1.0))
+            plot_min_yarr.append(np.nanpercentile(B, 1.0))
+            plot_max_yarr.append(np.nanpercentile(A, 99.0))
+            plot_max_yarr.append(np.nanpercentile(B, 99.0))
+            plt_ext_ymin = min(plot_min_yarr) * 0.9
             plt_ext_ymax = max(plot_max_yarr) * 1.1
 
         if PLOTEXTREMES:
@@ -317,8 +326,8 @@ class Disentangle:
             extremes_mjds = []
             extremes_plt_ext_ymin = []
             extremes_plt_ext_ymax = []
-            extremes_k1 = []
-            extremes_k2 = []
+            extremes_K1 = []
+            extremes_K2 = []
             extremes_neb_lines = []
 
         for ind in np.arange(len(obs_specs)):
@@ -326,28 +335,44 @@ class Disentangle:
             vB = vrB[ind] / self.clight
             fac_shift_1 = np.sqrt((1 + vA) / (1 - vA))
             fac_shift_2 = np.sqrt((1 + vB) / (1 - vB))
-            A_shift = interp1d(
-                waves * fac_shift_1, A, bounds_error=False, fill_value=0.0
-            )(waves[wave_calc_cond])
-            B_shift = interp1d(
-                waves * fac_shift_2, B, bounds_error=False, fill_value=0.0
-            )(waves[wave_calc_cond])
-            obs_spec = interp1d(
-                obs_specs[ind][:, 0],
-                obs_specs[ind][:, 1] - 1,
-                bounds_error=False,
-                fill_value=0.0,
-            )(waves[wave_calc_cond])
+            if interpolate:
+                A_shift = interp1d(
+                    waves * fac_shift_1, A, bounds_error=False, fill_value=0.0
+                )(waves[wave_calc_cond])
+                B_shift = interp1d(
+                    waves * fac_shift_2, B, bounds_error=False, fill_value=0.0
+                )(waves[wave_calc_cond])
+                obs_spec = interp1d(
+                    obs_specs[ind][:, 0],
+                    obs_specs[ind][:, 1] - 1,
+                    bounds_error=False,
+                    fill_value=0.0,
+                )(waves[wave_calc_cond])
+                if neb_lines:
+                    _neb_spec = interp1d(
+                        waves, neb_spec, bounds_error=False, fill_value=0.0
+                    )(waves[wave_calc_cond])
+            else:
+                A_shift = spectres(
+                    waves[wave_calc_cond], waves * fac_shift_1, A, fill=0.0
+                )
+                B_shift = spectres(
+                    waves[wave_calc_cond], waves * fac_shift_2, B, fill=0.0
+                )
+                obs_spec = spectres(
+                    waves[wave_calc_cond],
+                    obs_specs[ind][:, 0],
+                    obs_specs[ind][:, 1] - 1,
+                    fill=0.0,
+                )
+                if neb_lines:
+                    _neb_spec = spectres(
+                        waves[wave_calc_cond], waves, neb_spec, fill=0.0
+                    )
 
             if neb_lines:
                 # vNeb = 0.0
-                neb_shift = (
-                    neb_fac
-                    * scaling_neb[ind]
-                    * interp1d(
-                        waves, neb_spec, bounds_error=False, fill_value=0.0
-                    )(waves[wave_calc_cond])
-                )
+                neb_shift = neb_fac * scaling_neb[ind] * _neb_spec
                 spec_sum = A_shift + B_shift + neb_shift
             else:
                 neb_shift = np.zeros(len(A_shift))
@@ -363,14 +388,14 @@ class Disentangle:
             if PLOTEXTREMES:
                 # Only plot if ind is 0 or maximum
                 if self.K1now is None:
-                    _k1 = self.orbital_params["K1"]
+                    _K1 = self.orbital_params["K1"]
                 else:
-                    _k1 = self.K1now
+                    _K1 = self.K1now
 
                 if self.K2now is None:
-                    _k2 = K2s[self.kcount]
+                    _K2 = K2s[self.kcount]
                 else:
-                    _k2 = self.K2now
+                    _K2 = self.K2now
 
                 if ind == min(RV_ext_min_ind, RV_ext_max_ind):
                     extremes_A_shift.append(A_shift)
@@ -383,8 +408,8 @@ class Disentangle:
                     extremes_mjds.append(mjds[ind])
                     extremes_plt_ext_ymin.append(plt_ext_ymin)
                     extremes_plt_ext_ymax.append(plt_ext_ymax)
-                    extremes_k1.append(_k1)
-                    extremes_k2.append(_k2)
+                    extremes_K1.append(_K1)
+                    extremes_K2.append(_K2)
                     extremes_neb_lines.append(neb_lines)
 
                 elif ind == max(RV_ext_min_ind, RV_ext_max_ind):
@@ -398,8 +423,8 @@ class Disentangle:
                     extremes_mjds.append(mjds[ind])
                     extremes_plt_ext_ymin.append(plt_ext_ymin)
                     extremes_plt_ext_ymax.append(plt_ext_ymax)
-                    extremes_k1.append(_k1)
-                    extremes_k2.append(_k2)
+                    extremes_K1.append(_K1)
+                    extremes_K2.append(_K2)
                     extremes_neb_lines.append(neb_lines)
 
                 else:
@@ -421,12 +446,13 @@ class Disentangle:
                 output_path,
                 star_name,
                 range_str,
-                extremes_k1,
-                extremes_k2,
+                extremes_K1,
+                extremes_K2,
                 neb_lines=neb_lines,
                 extremes_fig_size=extremes_fig_size,
                 line_wid_ext=line_wid_ext,
                 display=display,
+                fig_type=fig_type,
             )
 
         if PLOTFITS:
@@ -449,6 +475,7 @@ class Disentangle:
                     output_path=output_path,
                     star_name=star_name,
                     display=display,
+                    fig_type=fig_type,
                 )
 
         print("kcount:", self.kcount)
@@ -497,6 +524,7 @@ class Disentangle:
         star_name,
         scaling_neb,
         neb_spec,
+        interpolate=False,
         resid=False,
         reduce=False,
         show_itr=False,
@@ -516,6 +544,7 @@ class Disentangle:
         kcount_usr=0,
         extremes_fig_size=(7, 8),
         display=False,
+        fig_type="png",
     ):
         """
         Documentation:
@@ -563,134 +592,230 @@ class Disentangle:
         fac_shift_2 = np.sqrt(
             (1 + vrads2 / self.clight) / (1 - vrads2 / self.clight)
         )
-        Ss1 = [
-            interp1d(
-                obs_specs[i][:, 0] / fac_shift_1[i],
-                obs_specs[i][:, 1] - 1.0,
-                bounds_error=False,
-                fill_value=0.0,
-                kind=inter_kind,
-            )(waves)
-            for i in np.arange(len(obs_specs))
-        ]
-        Ss2 = [
-            interp1d(
-                obs_specs[i][:, 0] / fac_shift_2[i],
-                obs_specs[i][:, 1] - 1.0,
-                bounds_error=False,
-                fill_value=0.0,
-                kind=inter_kind,
-            )(waves)
-            for i in np.arange(len(obs_specs))
-        ]
+        if interpolate:
+            if inter_kind == "linear":
+                Ss1 = np.array(
+                    [
+                        np.interp(
+                            waves,
+                            _spec[:, 0] / fac_shift_1[i],
+                            _spec[:, 1] - 1.0,
+                            left=0.0,
+                            right=0.0,
+                        )
+                        for i, _spec in enumerate(obs_specs)
+                    ]
+                )
+                Ss2 = np.array(
+                    [
+                        np.interp(
+                            waves,
+                            _spec[:, 0] / fac_shift_2[i],
+                            _spec[:, 1] - 1.0,
+                            left=0.0,
+                            right=0.0,
+                        )
+                        for i, _spec in enumerate(obs_specs)
+                    ]
+                )
+            elif inter_kind == "cubic":
+                Ss1 = np.array(
+                    [
+                        CubicSpline(
+                            _spec[:, 0] / fac_shift_1[i],
+                            _spec[:, 1] - 1.0,
+                        )(waves)
+                        for i, _spec in enumerate(obs_specs)
+                    ]
+                )
+                Ss2 = np.array(
+                    [
+                        CubicSpline(
+                            _spec[:, 0] / fac_shift_2[i],
+                            _spec[:, 1] - 1.0,
+                        )(waves)
+                        for i, _spec in enumerate(obs_specs)
+                    ]
+                )
+            else:
+                raise ValueError(
+                    f"Unknown inter_kind: {inter_kind}. "
+                    "Please choose from 'linear' or 'cubic'"
+                )
+        else:
+            Ss1 = np.array(
+                [
+                    spectres(
+                        waves,
+                        _spec[:, 0] / fac_shift_1[i],
+                        _spec[:, 1] - 1.0,
+                        fill=0.0,
+                    )
+                    for i, _spec in enumerate(obs_specs)
+                ]
+            )
+            Ss2 = np.array(
+                [
+                    spectres(
+                        waves,
+                        _spec[:, 0] / fac_shift_2[i],
+                        _spec[:, 1] - 1.0,
+                        fill=0.0,
+                    )
+                    for i, _spec in enumerate(obs_specs)
+                ]
+            )
+
         # Frame of Refernce star 1:
-        waves_BA = np.array(
-            [
-                waves * fac_shift_2[i] / fac_shift_1[i]
-                for i in np.arange(len(vrads1))
-            ]
-        )
+        waves_BA = np.outer(waves, fac_shift_2 / fac_shift_1).T
+
         # Frame of Refernce star 2:
-        waves_AB = np.array(
-            [
-                waves * fac_shift_1[i] / fac_shift_2[i]
-                for i in np.arange(len(vrads1))
-            ]
-        )
+        waves_AB = np.outer(waves, fac_shift_1 / fac_shift_2).T
+
         if neb_lines:
             fac_shift_neb = np.ones(len(vrads1))
-            SsNeb = [
-                interp1d(
-                    obs_specs[i][:, 0] / fac_shift_neb[i],
-                    obs_specs[i][:, 1] - 1.0,
-                    bounds_error=False,
-                    fill_value=0.0,
-                    kind=inter_kind,
-                )(waves)
-                for i in np.arange(len(obs_specs))
-            ]
-            waves_neb_A = np.array(
-                [
-                    waves * fac_shift_neb[i] / fac_shift_1[i]
-                    for i in np.arange(len(vrads1))
-                ]
-            )
-            waves_neb_B = np.array(
-                [
-                    waves * fac_shift_neb[i] / fac_shift_2[i]
-                    for i in np.arange(len(vrads1))
-                ]
-            )
-            waves_A_neb = np.array(
-                [
-                    waves * fac_shift_1[i] / fac_shift_neb[i]
-                    for i in np.arange(len(vrads1))
-                ]
-            )
-            waves_B_neb = np.array(
-                [
-                    waves * fac_shift_2[i] / fac_shift_neb[i]
-                    for i in np.arange(len(vrads1))
-                ]
-            )
+            if interpolate:
+                if inter_kind == "linear":
+                    SsNeb = np.array(
+                        [
+                            np.interp(
+                                waves,
+                                obs_specs[i][:, 0] / fac_shift_neb[i],
+                                obs_specs[i][:, 1] - 1.0,
+                                left=0.0,
+                                right=0.0,
+                            )
+                            for i in np.arange(len(obs_specs))
+                        ]
+                    )
+                elif inter_kind == "cubic":
+                    SsNeb = np.array(
+                        [
+                            CubicSpline(
+                                obs_specs[i][:, 0] / fac_shift_neb[i],
+                                obs_specs[i][:, 1] - 1.0,
+                            )(waves)
+                            for i in np.arange(len(obs_specs))
+                        ]
+                    )
+                else:
+                    raise ValueError(
+                        f"Unknown inter_kind: {inter_kind}. "
+                        "Please choose from 'linear' or 'cubic'"
+                    )
+            else:
+                SsNeb = np.array(
+                    [
+                        spectres(
+                            waves,
+                            _spec[:, 0] / fac_shift_neb[i],
+                            _spec[:, 1] - 1.0,
+                            fill=0.0,
+                        )
+                        for i, _spec in enumerate(obs_specs)
+                    ]
+                )
+            waves_neb_A = np.outer(waves, fac_shift_neb / fac_shift_1).T
+            waves_neb_B = np.outer(waves, fac_shift_neb / fac_shift_2).T
+            waves_A_neb = np.outer(waves, fac_shift_1 / fac_shift_neb).T
+            waves_B_neb = np.outer(waves, fac_shift_2 / fac_shift_neb).T
+
         itr = 0
         eps_itr = []
         while itr < itr_num_lim:
             itr += 1
-            BA_shifts = [
-                interp1d(
-                    waves_BA[i],
-                    B,
-                    bounds_error=False,
-                    fill_value=0.0,
-                    kind=inter_kind,
-                )
-                for i in np.arange(len(obs_specs))
-            ]
-            if neb_lines:
-                neb_A_shifts = [
-                    interp1d(
-                        waves_neb_A[i],
-                        neb_spec,
-                        bounds_error=False,
-                        fill_value=0.0,
-                        kind=inter_kind,
-                    )
-                    for i in np.arange(len(obs_specs))
-                ]
-                spec_mean_A = np.sum(
-                    np.array(
+            if interpolate:
+                if inter_kind == "linear":
+                    BA_shifts = np.array(
                         [
-                            weights[i]
-                            * (
-                                Ss1[i]
-                                - BA_shifts[i](waves)
-                                - neb_fac
-                                * scaling_neb[i]
-                                * neb_A_shifts[i](waves)
-                            )
-                            for i in np.arange(len(Ss1))
+                            np.interp(
+                                waves, waves_BA[i], B, left=0.0, right=0.0
+                            )(waves)
+                            for i in np.arange(len(obs_specs))
                         ]
-                    ),
+                    )
+                elif inter_kind == "cubic":
+                    BA_shifts = np.array(
+                        [
+                            CubicSpline(
+                                waves_BA[i],
+                                B,
+                            )(waves)
+                            for i in np.arange(len(obs_specs))
+                        ]
+                    )
+                else:
+                    raise ValueError(
+                        f"Unknown inter_kind: {inter_kind}. "
+                        "Please choose from 'linear' or 'cubic'"
+                    )
+            else:
+                BA_shifts = np.array(
+                    [
+                        spectres(
+                            waves,
+                            waves_BA[i],
+                            B,
+                            fill=0.0,
+                        )
+                        for i in np.arange(len(obs_specs))
+                    ]
+                )
+            if neb_lines:
+                if interpolate:
+                    if inter_kind == "linear":
+                        neb_A_shifts = np.array(
+                            [
+                                np.interp(
+                                    waves,
+                                    waves_neb_A[i],
+                                    neb_spec,
+                                    left=0.0,
+                                    right=0.0,
+                                )
+                                for i in np.arange(len(obs_specs))
+                            ]
+                        )
+                    elif inter_kind == "cubic":
+                        neb_A_shifts = np.array(
+                            [
+                                CubicSpline(
+                                    waves_neb_A[i],
+                                    neb_spec,
+                                )(waves)
+                                for i in np.arange(len(obs_specs))
+                            ]
+                        )
+                    else:
+                        raise ValueError(
+                            f"Unknown inter_kind: {inter_kind}. "
+                            "Please choose from 'linear' or 'cubic'"
+                        )
+                else:
+                    neb_A_shifts = np.array(
+                        [
+                            spectres(
+                                waves,
+                                waves_neb_A[i],
+                                neb_spec,
+                                fill=0.0,
+                            )
+                            for i in np.arange(len(obs_specs))
+                        ]
+                    )
+                spec_mean_A = np.sum(
+                    weights[:, None]
+                    * (Ss1 - BA_shifts - neb_fac * scaling_neb * neb_A_shifts),
                     axis=0,
                 )
             else:
                 spec_mean_A = np.sum(
-                    np.array(
-                        [
-                            weights[i] * (Ss1[i] - BA_shifts[i](waves))
-                            for i in np.arange(len(Ss1))
-                        ]
-                    ),
-                    axis=0,
+                    weights[:, None] * (Ss1 - BA_shifts), axis=0
                 )
-            A_new = interp1d(
-                waves,
-                spec_mean_A,
-                bounds_error=False,
-                fill_value=0.0,
-                kind=inter_kind,
-            )(waves)
+
+            A_new = spec_mean_A
+            A_new[np.isnan(A_new) | ~np.isfinite(A_new)] = 0.0
+
             if strict_neg_A:
                 A_new = self._limit(waves, A_new, pos_lim_all, pos_lim_cond_A)
             if A is not None:
@@ -698,94 +823,183 @@ class Disentangle:
             else:
                 eps_new = 0.0
             A = copy.deepcopy(A_new)
-            AB_shifts = [
-                interp1d(
-                    waves_AB[i],
-                    A,
-                    bounds_error=False,
-                    fill_value=0.0,
-                    kind=inter_kind,
-                )
-                for i in np.arange(len(obs_specs))
-            ]
-            if neb_lines:
-                neb_B_shifts = [
-                    interp1d(
-                        waves_neb_B[i],
-                        neb_spec,
-                        bounds_error=False,
-                        fill_value=0.0,
-                        kind=inter_kind,
-                    )
-                    for i in np.arange(len(obs_specs))
-                ]
-                spec_mean_B = np.sum(
-                    np.array(
+            if interpolate:
+                if inter_kind == "linear":
+                    AB_shifts = np.array(
                         [
-                            weights[i]
-                            * (
-                                Ss2[i]
-                                - AB_shifts[i](waves)
-                                - neb_fac
-                                * scaling_neb[i]
-                                * neb_B_shifts[i](waves)
-                            )
-                            for i in np.arange(len(Ss1))
+                            np.interp(
+                                waves, waves_AB[i], A, left=0.0, right=0.0
+                            )(waves)
+                            for i in np.arange(len(obs_specs))
                         ]
-                    ),
+                    )
+                elif inter_kind == "cubic":
+                    AB_shifts = np.array(
+                        [
+                            CubicSpline(
+                                waves_AB[i],
+                                A,
+                            )(waves)
+                            for i in np.arange(len(obs_specs))
+                        ]
+                    )
+                else:
+                    raise ValueError(
+                        f"Unknown inter_kind: {inter_kind}. "
+                        "Please choose from 'linear' or 'cubic'"
+                    )
+            else:
+                AB_shifts = np.array(
+                    [
+                        spectres(
+                            waves,
+                            waves_AB[i],
+                            A,
+                            fill=0.0,
+                        )
+                        for i in np.arange(len(obs_specs))
+                    ]
+                )
+
+            if neb_lines:
+                if interpolate:
+                    if inter_kind == "linear":
+                        neb_B_shifts = np.array(
+                            [
+                                np.interp(
+                                    waves,
+                                    waves_neb_B[i],
+                                    neb_spec,
+                                    left=0.0,
+                                    right=0.0,
+                                )
+                                for i in np.arange(len(obs_specs))
+                            ]
+                        )
+                    elif inter_kind == "cubic":
+                        neb_B_shifts = np.array(
+                            [
+                                CubicSpline(
+                                    waves_neb_B[i],
+                                    neb_spec,
+                                )(waves)
+                                for i in np.arange(len(obs_specs))
+                            ]
+                        )
+                    else:
+                        raise ValueError(
+                            f"Unknown inter_kind: {inter_kind}. "
+                            "Please choose from 'linear' or 'cubic'"
+                        )
+                else:
+                    neb_B_shifts = np.array(
+                        [
+                            spectres(
+                                waves,
+                                waves_neb_B[i],
+                                neb_spec,
+                                fill=0.0,
+                            )
+                            for i in np.arange(len(obs_specs))
+                        ]
+                    )
+                spec_mean_B = np.sum(
+                    weights[:, None]
+                    * (Ss2 - AB_shifts - neb_fac * scaling_neb * neb_B_shifts),
                     axis=0,
                 )
             else:
                 spec_mean_B = np.sum(
-                    np.array(
-                        [
-                            weights[i] * (Ss2[i] - AB_shifts[i](waves))
-                            for i in np.arange(len(Ss1))
-                        ]
-                    ),
-                    axis=0,
+                    weights[:, None] * (Ss2 - AB_shifts), axis=0
                 )
-            B_new = interp1d(
-                waves,
-                spec_mean_B,
-                bounds_error=False,
-                fill_value=0.0,
-                kind=inter_kind,
-            )(waves)
+            B_new = spec_mean_B
+            B_new[np.isnan(B_new) | ~np.isfinite(B_new)] = 0.0
+
             if strict_neg_B:
                 B_new = self._limit(waves, B_new, pos_lim_all, pos_lim_cond_B)
             eps_new = max(eps_new, np.sum((B - B_new) ** 2))
             B = B_new
             if neb_lines:
-                A_neb_shifts = [
-                    interp1d(
-                        waves_A_neb[i],
-                        A,
-                        bounds_error=False,
-                        fill_value=0.0,
-                        kind=inter_kind,
+                if interpolate:
+                    if inter_kind == "linear":
+                        A_neb_shifts = np.array(
+                            [
+                                np.interp(
+                                    waves,
+                                    waves_A_neb[i],
+                                    A,
+                                    left=0.0,
+                                    right=0.0,
+                                )
+                                for i in np.arange(len(obs_specs))
+                            ]
+                        )
+                        B_neb_shifts = np.array(
+                            [
+                                np.interp(
+                                    waves,
+                                    waves_B_neb[i],
+                                    B,
+                                    left=0.0,
+                                    right=0.0,
+                                )
+                                for i in np.arange(len(obs_specs))
+                            ]
+                        )
+                    elif inter_kind == "cubic":
+                        A_neb_shifts = np.array(
+                            [
+                                CubicSpline(
+                                    waves_A_neb[i],
+                                    A,
+                                )(waves)
+                                for i in np.arange(len(obs_specs))
+                            ]
+                        )
+                        B_neb_shifts = np.array(
+                            [
+                                CubicSpline(
+                                    waves_B_neb[i],
+                                    B,
+                                )(waves)
+                                for i in np.arange(len(obs_specs))
+                            ]
+                        )
+                    else:
+                        raise ValueError(
+                            f"Unknown inter_kind: {inter_kind}. "
+                            "Please choose from 'linear' or 'cubic'"
+                        )
+                else:
+                    A_neb_shifts = np.array(
+                        [
+                            spectres(
+                                waves,
+                                waves_A_neb[i],
+                                A,
+                                fill=0.0,
+                            )
+                            for i in np.arange(len(obs_specs))
+                        ]
                     )
-                    for i in np.arange(len(obs_specs))
-                ]
-                B_neb_shifts = [
-                    interp1d(
-                        waves_B_neb[i],
-                        B,
-                        bounds_error=False,
-                        fill_value=0.0,
-                        kind=inter_kind,
+                    B_neb_shifts = np.array(
+                        [
+                            spectres(
+                                waves,
+                                waves_B_neb[i],
+                                B,
+                                fill=0.0,
+                            )
+                            for i in np.arange(len(obs_specs))
+                        ]
                     )
-                    for i in np.arange(len(obs_specs))
-                ]
                 spec_mean = np.sum(
                     np.array(
                         [
                             weights[i]
                             * self._limit(
                                 waves,
-                                SsNeb[i]
-                                - A_neb_shifts[i](waves)
-                                - B_neb_shifts[i](waves),
+                                SsNeb[i] - A_neb_shifts[i] - B_neb_shifts[i],
                                 pos_lim_all,
                                 pos_lim_cond_Neb,
                             )
@@ -794,13 +1008,11 @@ class Disentangle:
                     ),
                     axis=0,
                 )
-                neb_spec_new = interp1d(
-                    waves,
-                    spec_mean,
-                    bounds_error=False,
-                    fill_value=0.0,
-                    kind=inter_kind,
-                )(waves)
+
+                neb_spec_new = spec_mean
+                neb_spec_new[
+                    np.isnan(neb_spec_new) | ~np.isfinite(neb_spec_new)
+                ] = 0.0
                 neb_spec_new[neb_spec_new < pos_lim_all[0]] = 0.0
                 eps_new = max(eps_new, np.sum(np.abs(neb_spec - neb_spec_new)))
                 neb_spec = neb_spec_new
@@ -826,6 +1038,7 @@ class Disentangle:
                         output_path,
                         star_name,
                         display,
+                        fig_type,
                     )
 
         print(f"Finished after {itr} iterations")
@@ -836,6 +1049,7 @@ class Disentangle:
                 output_path,
                 star_name,
                 display,
+                fig_type,
             )
 
         dis_spec_vector = np.array([A, B, neb_spec])
@@ -856,6 +1070,7 @@ class Disentangle:
             output_path,
             star_name,
             scaling_neb,
+            interpolate=interpolate,
             resid=resid,
             reduce=reduce,
             show_itr=show_itr,
@@ -868,6 +1083,8 @@ class Disentangle:
             neb_fac=neb_fac,
             kcount_usr=kcount_usr,
             extremes_fig_size=extremes_fig_size,
+            display=display,
+            fig_type=fig_type,
         )
 
     def grid_disentangling2D(
@@ -889,6 +1106,7 @@ class Disentangle:
         output_path,
         star_name,
         scaling_neb,
+        interpolate=False,
         ini=None,
         show_itr=False,
         inter_kind="linear",
@@ -907,6 +1125,7 @@ class Disentangle:
         kcount_usr=0,
         extremes_fig_size=(7, 8),
         display=False,
+        fig_type="png",
     ):
         """
         Assuming spectrum for secondary (Bini) and vrads1, gamma, and K1,
@@ -975,6 +1194,7 @@ class Disentangle:
                         star_name,
                         scaling_neb,
                         neb_spec,
+                        interpolate=interpolate,
                         inter_kind=inter_kind,
                         itr_num_lim=itr_num_lim,
                         PLOTCONV=PLOTCONV,
@@ -989,6 +1209,8 @@ class Disentangle:
                         neb_fac=1,
                         kcount_usr=kcount_usr,
                         extremes_fig_size=extremes_fig_size,
+                        display=display,
+                        fig_type=fig_type,
                     )[-1]
 
         diffs /= self.DoFs

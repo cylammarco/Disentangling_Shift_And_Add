@@ -133,7 +133,7 @@ pos_lim_all = force_neg_sigma / S2Ns_mean
 # weighting for final co-added spectrum
 weights = S2Ns**2 / np.sum(S2Ns**2)
 
-# Grid on which the spectra are calculated on (taken here as longest and densenst wavelength grid among spectra):
+# Grid on which the spectra are calculated on (taken here as longest and densest wavelength grid among spectra):
 for i, spec in enumerate(obs_specs):
     delta = np.amin(np.abs(np.diff(spec[:, 0])))
     w1 = spec[0, 0]
@@ -174,32 +174,32 @@ if dense_k_arr[0] == 1:
     K1s = np.array([orbital_params["K1"]])
 else:
     K1s = np.linspace(
-        ini_fac_k_arr[0] * orbital_params["K1"],
-        fin_fac_k_arr[0] * orbital_params["K1"],
+        ini_fac_K_arr[0] * orbital_params["K1"],
+        fin_fac_K_arr[0] * orbital_params["K1"],
         dense_k_arr[0],
     )
 if dense_k_arr[1] == 1:
     K2s = np.array([orbital_params["K2"]])
 else:
     K2s = np.linspace(
-        ini_fac_k_arr[1] * orbital_params["K2"],
-        fin_fac_k_arr[1] * orbital_params["K2"],
+        ini_fac_K_arr[1] * orbital_params["K2"],
+        fin_fac_K_arr[1] * orbital_params["K2"],
         dense_k_arr[1],
     )
 if dense_k_arr[2] == 1:
     K3s = np.array([orbital_params["K3"]])
 else:
     K3s = np.linspace(
-        ini_fac_k_arr[2] * orbital_params["K3"],
-        fin_fac_k_arr[2] * orbital_params["K3"],
+        ini_fac_K_arr[2] * orbital_params["K3"],
+        fin_fac_K_arr[2] * orbital_params["K3"],
         dense_k_arr[2],
     )
 if dense_k_arr[3] == 1:
     K4s = np.array([orbital_params["K4"]])
 else:
     K4s = np.linspace(
-        ini_fac_k_arr[3] * orbital_params["K4"],
-        fin_fac_k_arr[3] * orbital_params["K4"],
+        ini_fac_K_arr[3] * orbital_params["K4"],
+        fin_fac_K_arr[3] * orbital_params["K4"],
         dense_k_arr[3],
     )
 
@@ -255,6 +255,8 @@ if grid_dis:
         neb_fac=1,
         kcount_usr=kcount_usr,
         extremes_fig_size=extremes_fig_size,
+        display=False,
+        fig_type="png",
     )
     orbital_params["K1"] = K1
     orbital_params["K2"] = K2
@@ -313,6 +315,7 @@ dis_spec_vector, redchi2 = disentangler.disentangle(
     neb_fac=1,
     extremes_fig_size=extremes_fig_size,
     display=False,
+    fig_type="png",
 )
 
 
