@@ -1,21 +1,24 @@
-This is a modified version of the `Disentangling_Shift_And_Add` to allow simpler integration with a user's native workflow. This is working under a temporary codename `saad`, the acronym of **s**hift **a**nd **a**dd **disentangling**. No changes is made to the aource code of the algorithms.
+This is a modified version of the `Disentangling_Shift_And_Add` to allow simpler integration with a user's native workflow. This is working under a temporary codename `saad`, the acronym of *S*hift *A*nd *A*dd *D*isentangling. No changes is made to the source code of the algorithms.
 
 ## Changes
 
-* The package is now installable (see below)
-* The four types of diagnostic plots can all be exported in a single workflow (though be careful with the volume of the output)
-* Users can choose the output path
-* Users can choose between spectral resampling and interpolation
-* Automatically strip nan and inf in input
-* Interpolation is now using numpy.interp for linear interpolation, scipy.interpolate.CubicSpline for cubic interpolation
-* Users can choose diagnostic plots output type (e.g. pdf, png, jpg)
+* Style: using black for auto-formating
+* Extension: The package is now installable (see below)
+* Extension: the four types of diagnostic plots can all be exported in a single workflow (though be careful with the volume of the output)
+* Extension: Users can choose the output path
+* Extension: Users can choose between spectral resampling (good and fast for system without narrow lines) and interpolation
+* Extension: Automatically strip nan and inf in input
+* Extension: Users can choose diagnostic plots output type (e.g. pdf, png, jpg)
+* Performance: The core of the software is now object-oriented
+* Performance: Interpolation is now using numpy.interp for linear interpolation, scipy.interpolate.CubicSpline for cubic interpolation
 
 ## To do
 
-* K1K2 grid histogram
-* K1K2 MCMC search
-* Change the config file from `Input_disentangle.py` to a yaml
-* Move ranges and ranges_str to a dictionary
+* Broken: K1K2 grid histogram
+* Extension: K1K2 MCMC search
+* Extension: light ratio search
+* Style: Change the config file from `Input_disentangle.py` to a yaml
+* Style: Move ranges and ranges_str to a dictionary
 
 ## Installation
 
@@ -27,7 +30,6 @@ or to install in editable mode:
 
     git clone https://github.com/cylammarco/Disentangling_Shift_And_Add
     pip install -e Disentangling_Shift_And_Add
-
 
 ## Usage
 
