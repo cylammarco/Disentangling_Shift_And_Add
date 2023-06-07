@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.interpolate import CubicSpline, interp1d
 from scipy.special import gammainc
-from spectres import spectres
+from spectresc import spectres
 
 from .plotting import (
     plot_best_fit,
@@ -303,6 +303,7 @@ class Disentangle:
                         obs_specs[ind][:, 0],
                         obs_specs[ind][:, 1] - 1,
                         fill=0.0,
+                        verbose=False,
                     )
 
                 plot_min_yarr.append(np.amin(_new_spec))
@@ -354,20 +355,33 @@ class Disentangle:
                     )(waves[wave_calc_cond])
             else:
                 A_shift = spectres(
-                    waves[wave_calc_cond], waves * fac_shift_1, A, fill=0.0
+                    waves[wave_calc_cond],
+                    waves * fac_shift_1,
+                    A,
+                    fill=0.0,
+                    verbose=False,
                 )
                 B_shift = spectres(
-                    waves[wave_calc_cond], waves * fac_shift_2, B, fill=0.0
+                    waves[wave_calc_cond],
+                    waves * fac_shift_2,
+                    B,
+                    fill=0.0,
+                    verbose=False,
                 )
                 obs_spec = spectres(
                     waves[wave_calc_cond],
                     obs_specs[ind][:, 0],
                     obs_specs[ind][:, 1] - 1,
                     fill=0.0,
+                    verbose=False,
                 )
                 if neb_lines:
                     _neb_spec = spectres(
-                        waves[wave_calc_cond], waves, neb_spec, fill=0.0
+                        waves[wave_calc_cond],
+                        waves,
+                        neb_spec,
+                        fill=0.0,
+                        verbose=False,
                     )
 
             if neb_lines:
@@ -650,6 +664,7 @@ class Disentangle:
                         _spec[:, 0] / fac_shift_1[i],
                         _spec[:, 1] - 1.0,
                         fill=0.0,
+                        verbose=False,
                     )
                     for i, _spec in enumerate(obs_specs)
                 ]
@@ -661,6 +676,7 @@ class Disentangle:
                         _spec[:, 0] / fac_shift_2[i],
                         _spec[:, 1] - 1.0,
                         fill=0.0,
+                        verbose=False,
                     )
                     for i, _spec in enumerate(obs_specs)
                 ]
@@ -711,6 +727,7 @@ class Disentangle:
                             _spec[:, 0] / fac_shift_neb[i],
                             _spec[:, 1] - 1.0,
                             fill=0.0,
+                            verbose=False,
                         )
                         for i, _spec in enumerate(obs_specs)
                     ]
@@ -757,6 +774,7 @@ class Disentangle:
                             waves_BA[i],
                             B,
                             fill=0.0,
+                            verbose=False,
                         )
                         for i in np.arange(len(obs_specs))
                     ]
@@ -799,6 +817,7 @@ class Disentangle:
                                 waves_neb_A[i],
                                 neb_spec,
                                 fill=0.0,
+                                verbose=False,
                             )
                             for i in np.arange(len(obs_specs))
                         ]
@@ -856,6 +875,7 @@ class Disentangle:
                             waves_AB[i],
                             A,
                             fill=0.0,
+                            verbose=False,
                         )
                         for i in np.arange(len(obs_specs))
                     ]
@@ -899,6 +919,7 @@ class Disentangle:
                                 waves_neb_B[i],
                                 neb_spec,
                                 fill=0.0,
+                                verbose=False,
                             )
                             for i in np.arange(len(obs_specs))
                         ]
@@ -978,6 +999,7 @@ class Disentangle:
                                 waves_A_neb[i],
                                 A,
                                 fill=0.0,
+                                verbose=False,
                             )
                             for i in np.arange(len(obs_specs))
                         ]
@@ -989,6 +1011,7 @@ class Disentangle:
                                 waves_B_neb[i],
                                 B,
                                 fill=0.0,
+                                verbose=False,
                             )
                             for i in np.arange(len(obs_specs))
                         ]
