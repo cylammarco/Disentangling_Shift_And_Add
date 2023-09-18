@@ -45,6 +45,7 @@ if comp_num != 2:
     print("ERROR: Can't handle more than two components with current version.")
     sys.exit("Exit in disentangle_shift_and_add.py")
 
+lguess1 = 1.0 - np.sum(lguess_vec)
 # vector of light ratios l1, l2, l3, l4
 lguess_vec = [lguess1] + lguess_vec
 
@@ -214,12 +215,12 @@ if grid_dis:
     # Compute RVs for comp1, comp2
     vrads1, vrads2 = disentangler.v1_and_v2(nusdata, orbital_params)
     scaling_neb = np.ones(len(vrads1))
-    kcount_extremeplot = np.argmin(np.abs(K1s - velo_plot_usr_K1_ext)) * len(
+    kcount_extremeplot = np.argmin(np.abs(K1s - orbital_params["K1"])) * len(
         K2s
-    ) + np.argmin(np.abs(K2s - velo_plot_usr_K2_ext))
-    kcount_usr = np.argmin(np.abs(K1s - velo_plot_usr_K1)) * len(
+    ) + np.argmin(np.abs(K2s - orbital_params["K2"]))
+    kcount_usr = np.argmin(np.abs(K1s - orbital_params["K1"])) * len(
         K2s
-    ) + np.argmin(np.abs(K2s - velo_plot_usr_K2))
+    ) + np.argmin(np.abs(K2s - orbital_params["K2"]))
     K1, K2 = disentangler.grid_disentangling2D(
         wave_ranges,
         nusdata,

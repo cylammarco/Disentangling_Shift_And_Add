@@ -188,9 +188,9 @@ class Disentangle:
     def _limit(waves, arr, lim, pos_lim):
         for i, Range in enumerate(pos_lim):
             if "PosCond" not in locals():
-                PosCond = (pos_lim[i][0] < waves) * (waves < pos_lim[i][1])
+                PosCond = (Range[0] < waves) * (waves < Range[1])
             else:
-                PosCond += (pos_lim[i][0] < waves) * (waves < pos_lim[i][1])
+                PosCond += (Range[0] < waves) * (waves < Range[1])
         NegCond = np.logical_not(PosCond)
         arr[(arr > lim) * NegCond] = 0.0
         return arr
@@ -204,20 +204,18 @@ class Disentangle:
         vrA, vrB = self.v1_and_v2(nus_data, orbital_params_max)
         indices = np.where(np.diff(waves) > 1.0)
         wave_calc_cond = waves < 0
+        max_vr_by_c = max(vrA, vrB) / self.clight
+        min_vr_by_c = min(vrA, vrB) / self.clight
         if len(indices) == 0:
-            lam_min = waves[0] * (1.0 + max(max(vrA), max(vrB)) / self.clight)
-            lam_max = waves[-1] * (1.0 + min(min(vrA), min(vrB)) / self.clight)
+            lam_min = waves[0] * (1.0 + max_vr_by_c)
+            lam_max = waves[-1] * (1.0 + min_vr_by_c)
             wave_calc_cond = (waves > lam_min) * (waves < lam_max)
         else:
             indices = np.append(0, indices[0])
             indices = np.append(indices, len(waves) - 1)
             for j in np.arange(len(indices) - 1):
-                lam_min = waves[indices[j] + 1] * (
-                    1.0 + max(max(vrA), max(vrB)) / self.clight
-                )
-                lam_max = waves[indices[j + 1]] * (
-                    1.0 + min(min(vrA), min(vrB)) / self.clight
-                )
+                lam_min = waves[indices[j] + 1] * (1.0 + max_vr_by_c)
+                lam_max = waves[indices[j + 1]] * (1.0 + min_vr_by_c)
                 wave_calc_cond = wave_calc_cond + (waves > lam_min) * (
                     waves < lam_max
                 )
@@ -316,7 +314,6 @@ class Disentangle:
             plt_ext_ymin = min(plot_min_yarr) * 0.9
             plt_ext_ymax = max(plot_max_yarr) * 1.1
 
-        if PLOTEXTREMES:
             extremes_A_shift = []
             extremes_B_shift = []
             extremes_neb_shift = []

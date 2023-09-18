@@ -1,8 +1,8 @@
-# shift-and-add & grid disentangling, by Tomer Shenar, with contributions from Matthias Fabry & Julia Bodensteiner
-# 21.11.2022, V1.0; feel free to contact at T.Shenar@uva.nl or tomer.shenar@gmail.com for questions/inquires
-# Input file
-
-import numpy as np
+# Input file for shift-and-add & grid disentangling
+# author: Tomer Shenar
+# credit: Matthias Fabry & Julia Bodensteiner
+# contact: T.Shenar@uva.nl or tomer.shenar@gmail.com for questions/inquires
+# 
 
 ###############################
 ##### STAR AND DATA INFO ######
@@ -10,13 +10,13 @@ import numpy as np
 
 
 # Name of object (just for file names)
-star_name = "Test"
+star_name: "Test"
 
 # Path to data (folder where all spectra are stored):
-obs_path = "obs"
+obs_path: "obs"
 
 # Path to output
-output_path = "Output"
+output_path: "Output"
 
 
 ### Type of data format. There are two options:
@@ -36,23 +36,22 @@ output_path = "Output"
 ### 2. For the "fits" option, I include a few built-in functions to read e.g. HERMES, X-SHOOTER, FEROS spectra....
 ### User should feel free to update the reading of the files!
 
-obs_format = "TXT"
-obs_data_filename = "ObsDat.txt"
+obs_format: "TXT"
+obs_data_filename: "ObsDat.txt"
 
 # Only important if obs_format='FITS'
-mjd_header_keyword = "MJD-OBS"
+mjd_header_keyword: "MJD-OBS"
 
 # Figure format
-fig_type = "png"
+fig_type: "png"
 
 ###############################
 ##### SYSTEM PROPERTIES #######
 ###############################
 
-
 # Number of components; currently possible only 2 components
 # up to four components in upcoming version
-comp_num = 2
+comp_num: 2
 
 
 # Orbital parameters
@@ -60,61 +59,56 @@ comp_num = 2
 ### K1, K2 can be explored via chi2 if required by the user, but initial guesses should be given.
 ### Important: omega is defined via vr(1) = Gamma1 + K1*(cos(nu) + ecc * cos(omega) )
 ### If results don't make sense, your best bet is to set omega --> omega + pi
-orbital_params = {
+orbital_params:
     ####### MUST BE FILLED BELOW ALWAYS (inner binary) ######
-    "Period": 473.0,
-    "T0": 0.0,
-    "ecc": 0.5,
-    "omega": 60.0,
-    "Gamma": 0.0,
-    "K1": 87.0,
-    "K2": 135.0,
+    Period: 473.0
+    T0: 0.0
+    ecc: 0.5
+    omega: 60.0
+    Gamma: 0.0
+    K1: 87.0
+    K2: 135.0
     ####### Only for triples / quadruples: refers to outer orbit of companion/binary AROUND the inner binary ######
     ####### IF outer period very long/negligible, set PeriodOut = 1E10 to neglect long-term motion
-    "PeriodOut": 0.0,
-    "T0Out": 0.0,
-    "eccOut": 0.0,
-    "omegaOut": 0.0,
-    "KOut": 0.0,
+    PeriodOut: 0.0
+    T0Out: 0.0
+    eccOut: 0.0
+    omegaOut: 0.0
+    KOut: 0.0
     ####### Only for Quadruples: refers to orbit of 2nd binary in the system  ######
-    "Period_2": 0.0,
-    "T0_2": 0.0,
-    "ecc_2": 0.0,
-    "omega_2": 0.0,
-    "K3": 0.0,
-    "K4": 0.0,
-}
+    Period_2: 0.0
+    T0_2: 0.0
+    ecc_2: 0.0
+    omega_2: 0.0
+    K3: 0.0
+    K4: 0.0
 
 
 # Vector of light ratios, [l2, l3, l4], i.e. flux_i / sum(flux). Assumed constant throughout range.
-lguess_vec = [0.3, 0.0, 0.0]
-
-
-lguess1 = 1.0 - np.sum(lguess_vec)
+lguess_vec: [0.3, 0.0, 0.0]
 
 
 # Where to measure S2N, only important for  defining continuum and weighting of spectra when co-adding (not critical)
-S2Nblue = 4155
-S2Nred = 4165
+S2Nblue: 4155
+S2Nred: 4165
 
 
 ################################
 ##### Disentangling options ####
 ################################
 
-
 # Run grid disentangling?
 # If TRUE: will conduct grid disentangling and derive Ks
 # If FALSE: will only peform separation using input K1,K2
-grid_dis = True
+grid_dis: True
 
 # Define grid search (only important if GridDis = True).
 # For setting K1, K2, K3, K4 search arrays: Karr = np.arange(ini_fac_K*K, fin_fac_K*K, Dense)
 # Current version only works for first two columns (K1, K2)
 # If dense_K_arr[i] = 1, then the search is "1D", i.e. K is fixed to the value specified by the user.
-dense_k_arr = [10, 10, 1, 1]
-ini_fac_K_arr = [0.1, 0.1, 0.3, 0.3]
-fin_fac_K_arr = [2.0, 2.0, 2.0, 2.0]
+dense_k_arr: [10, 10, 1, 1]
+ini_fac_K_arr: [0.1, 0.1, 0.3, 0.3]
+fin_fac_K_arr: [2.0, 2.0, 2.0, 2.0]
 
 
 # Number of iterations
@@ -126,8 +120,8 @@ fin_fac_K_arr = [2.0, 2.0, 2.0, 2.0]
 ###    after K1, K2 have been derived / set. Often, itr_num_lim < num_itr_final, for speed, and since individual iterations occur on individual lines.
 ### 3. See documentation for tips and insights about number of iterations.
 
-itr_num_lim = 50
-num_itr_final = 1000
+itr_num_lim: 50
+num_itr_final: 1000
 
 
 # If strict_neg_A = True, enforce disentangled spectra to be below continuum except for prespecified regions (given in array).
@@ -136,43 +130,50 @@ num_itr_final = 1000
 # For WR stars typically "False" is better.
 # "Positive regions" should be regions with expected emission lines etc. For WR stars,
 
-force_neg_sigma = 2.0
+force_neg_sigma: 2.0
 
-strict_neg_A = True
+strict_neg_A: True
 
 # Only relevant if strict_neg_A=True
-pos_lim_cond_A = np.array([[3968.0, 3969.0]])
+pos_lim_cond_A:
+    - 3968.0
+    - 3969.0
 
 # Same as strict_neg_A for secondary
-strict_neg_B = True
+strict_neg_B: True
 
-pos_lim_cond_B = np.array([[3968.0, 3969.0]])
+pos_lim_cond_B:
+    - 3968.0
+    - 3969.0
 
 # Same as strict_neg_A for tertiary
-strict_neg_C = True
+strict_neg_C: True
 
-pos_lim_cond_C = np.array([[3968.0, 3969.0]])
+pos_lim_cond_C:
+    - 3968.0
+    - 3969.0
 
 # Same as strict_neg_A for fourth companion
-strict_neg_D = True
+strict_neg_D: True
 
-pos_lim_cond_D = np.array([[3968.0, 3969.0]])
+pos_lim_cond_D:
+    - 3968.0
+    - 3969.0
 
 
 # Define regions where the solution is allowed to be above continuum (where emission is expected)
-pos_lim_cond_Neb = np.array(
-    [
-        [3968.0, 3971.0],
-        [4025.0, 4027.0],
-        [4100.5, 4103],
-        [4143.0, 4145],
-        [4339.0, 4342],
+pos_lim_cond_Neb:
+    - 3968.0, 3971.0
+    - 4025.0, 4027.0
+    - 4100.5, 4103
+    - 4143.0, 4145
+    - 4339.0, 4342
         # [4340., 4345],
-        [4387.0, 4391.5],
+    - 4387.0, 4391.5
         # [4385., 4393],
         # [4335., 4345.],
         # [4465., 4482.]
-        [4470.0, 4473.0]
+    - 4470.0, 4473.0
         # [4135., 4150.],
         # [4228., 4238.],
         # [4330., 4355.],
@@ -183,55 +184,46 @@ pos_lim_cond_Neb = np.array(
         # [5160., 5180.], [5190., 5210.], [5225., 5240.], [5270., 5290.],
         # [5310, 5325.], [5255., 5370.], [5520., 5540.], [6140., 6160.], [6230., 6260.], [6310., 6330],
         # [6340., 6390.], [6410., 6460.], [6510, 6520.], [6553., 6574.], [7505, 7525], [7766., 7786.]
-    ]
-)
 
 
 # Plot fits between disentangled spectra, their sum, and the observations at RV extremes.
 # Highly recommended for sanity checks and presentation in papers.
 # The plot is shown for the K1, K2 pair most closely matching (velo_plot_usr_K1_ext, velo_plot_usr_K2_ext, ...) given by the user.
 # Recommended: True
-PLOTEXTREMES = True
-velo_plot_usr_K1_ext = orbital_params["K1"]
-velo_plot_usr_K2_ext = orbital_params["K2"]
-velo_plot_usr_K3_ext = orbital_params["K3"]
-velo_plot_usr_K4_ext = orbital_params["K4"]
+PLOTEXTREMES: True
 
 # line width and figsize for "Extreme plots"
-line_wid_ext = 2
-extremes_fig_size = (7, 7)
+line_wid_ext: 2
+extremes_fig_size: (7, 7)
 
 
 # Plot fits between disentangled spectra, their sum, and each epoch of observation.
 # Useful to examine all data; rather tedious but important for critical systems (e.g., black holes!)
 # The plot is shown for the K1, K2 pair most closely matching (velo_plot_usr_K1, velo_plot_usr_K2) given by the user.
 # Recommended: False
-PLOTFITS = True
-velo_plot_usr_K1 = orbital_params["K1"]
-velo_plot_usr_K2 = orbital_params["K2"]
-velo_plot_usr_K3 = orbital_params["K3"]
-velo_plot_usr_K4 = orbital_params["K4"]
+PLOTFITS: True
+
 
 # Plot convergence plot
 # If True, will produce converge plot, i.e. EPS vs. itr for each run.
 # EPS = SUM(DisSpec[i+1] - DisSpec[i]), where the maximum on all components is taken.
 # Recommended: False
-PLOTCONV = True
+PLOTCONV: True
 
 
 # Plot disentangled spectra after each "n_iteration_plot" iterations; helpful for judging convergence.
 # Recommended: False
-PLOTITR = True
-n_iteration_plot = 100
+PLOTITR: True
+n_iteration_plot: 100
 
 
 # Type of interpolation in interp1d (see python doc for options);
 # 'linear' can lead to artificial increase of S/N due to interpolation
 # 'cubic' performs better, but is slower.
-inter_kind = "linear"
+inter_kind: "linear"
 
 # Region for fitting parabola of chi2 in index steps from minimum
-parb_size = 3
+parb_size: 3
 
 
 ################################
@@ -256,7 +248,7 @@ parb_size = 3
 # range_str = 'Balmer'
 # range_str = 'Balmer_noHalpha'
 # range_str = 'HeI'
-range_str = "HeI4472"
+range_str: "HeI4472"
 # range_str = 'HeI4122'
 # range_str = 'HeI4009'
 # range_str = 'HeI4026'
@@ -284,31 +276,36 @@ range_str = "HeI4472"
 # range_str = 'Indiv'
 
 ##### Define ranges corresponding too the strings above.... CHANGE IF NEEDED
-
-range_Ha = [6553, 6570.0]
-range_Hb = [4840, 4877.0]
-range_Hg = [4310.0, 4370.0]
-range_Hd = [4070, 4140.0]
-range_HeI5878 = [5869.0, 5881.0]
-range_HeI4472 = [4457.0, 4489.0]
-range_HeI4144 = [4120.0, 4170.0]
-range_OIIIJulia = [7760.0, 7785.0]
-range_Fe4584 = [4580, 4588]
-range_Fe4584 = [4580, 4586]
-range_Fe5168 = [5162, 5174]
-range_Fe5192 = [5190.0, 5205]
-range_Fe5234 = [5230.0, 5240]
-range_Fe5275 = [5268, 5282.0]
-range_Fe5316 = [5310.0, 5322.0]
-range_Fe5362 = [5358.0, 5367.0]
-range_OIII8446 = [8438.0, 8455.0]
-range_HI8367 = [8367.0, 8500.0]
-range_HeI4122 = [4115.0, 4127.0]
-range_HeI4009 = [4003.0, 4018.0]
-range_HeI4026 = [4000.0, 4050.0]
-range_HeI4388 = [4365, 4410.0]
-range_HeII4545 = [4515.0, 4565.0]
-range_HeII4200 = [4185.0, 4215.0]
+ranges:
+    # Hydrogen
+    - 6553.0, 6570.0 # H-alpha
+    - 4840.0, 4877.0 # H-beta
+    - 4310.0, 4370.0 # H-gamma
+    - 4070.0, 4140.0 # H-delta
+    # Helium-I
+    - 4000.0, 4050.0 # HeI 4026
+    - 4003.0, 4018.0 # HeI 4009
+    - 4115.0, 4127.0 # HeI 4122
+    - 4120.0, 4170.0 # HeI 4144
+    - 4365.0, 4410.0 # HeI 4388
+    - 4457.0, 4489.0 # HeI 4472
+    - 5869.0, 5881.0 # HeI 5878
+    - 8367.0, 8500.0 # HeI 8367
+    # Helium-II
+    - 4185.0, 4215.0 # HeII 4200
+    - 4515.0, 4565.0 # HeII 4545
+    # Oxygen
+    - 7760.0, 7785.0 # OIII Julia
+    - 8438.0, 8455.0 # OIII 8446
+    # Iron
+    - 4580.0, 4588.0 # Fe 4584
+    - 4580.0, 4586.0 # Fe 4584
+    - 5162.0, 5174.0 # Fe 5168
+    - 5190.0, 5205.0 # Fe 5192
+    - 5230.0, 5240.0 # Fe 5234
+    - 5268.0, 5282.0 # Fe 5275
+    - 5310.0, 5322.0 # Fe 5316
+    - 5358.0, 5367.0 # Fe 5362
 
 # Define "ranges" list based on user's choices from above.
 
@@ -398,37 +395,37 @@ elif range_str == "Indiv":
 
 
 # Clean cosmics?
-clean_cos = False
+clean_cos: False
 
 
 # renormalise spectra at pre-specified points.
-renormalise = False
-norm_points = [
-    3961.0,
-    4006.0,
-    4016.0,
-    4038.0,
-    4088.0,
-    4116.0,
-    4129.0,
-    4138.0,
-    4154.0,
-    4195.0,
-    4210.0,
-    4328.0,
-    4362.0,
-    4386.0,
-    4400.0,
-    4462.0,
-    4490.0,
-    4494.0,
-    4530.0,
-    4557.0,
-    4560,
-]
+renormalise: False
+norm_points:
+    - 3961.0
+    - 4006.0
+    - 4016.0
+    - 4038.0
+    - 4088.0
+    - 4116.0
+    - 4129.0
+    - 4138.0
+    - 4154.0
+    - 4195.0
+    - 4210.0
+    - 4328.0
+    - 4362.0
+    - 4386.0
+    - 4400.0
+    - 4462.0
+    - 4490.0
+    - 4494.0
+    - 4530.0
+    - 4557.0
+    - 4560.0
+
 
 # Nebular line handling?
-neb_lines = False
+neb_lines: False
 
 
 ####################
