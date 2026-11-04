@@ -995,7 +995,7 @@ def read_fits(infile):
 def read_xytable(infile, SkipLines=0):
     print(("%s: Input file is an xytable file." % infile))    
     #spec = (pd.read_csv(infile, sep=" ", header=0)).values   
-    spec = (pd.read_csv(infile, header=None, delim_whitespace=True, skiprows=SkipLines)).values    
+    spec = (pd.read_csv(infile, header=None, sep=r"\s+", skiprows=SkipLines)).values
     wave = spec[:,0]
     flux = spec[:,1]    
     return wave, flux
