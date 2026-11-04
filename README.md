@@ -2,6 +2,8 @@
 
 This fork packages shift-and-add spectral disentangling as `saad`. The installable workflow supports binary systems, optional stationary nebular emission, K1/K2 grid search, and diagnostic plots. Tomer Shenar's upstream V2.0 workflow remains under `example/legacy/` for binaries and triples.
 
+Full installation, quickstart, method, configuration, outputs, and Python API documentation: [docs/index.md](docs/index.md).
+
 ## Install
 
 From a clone of this repository:
@@ -35,6 +37,6 @@ Python callers can use `from saad import load_config, run` and `result, orbit = 
 
 ## Examples and legacy triples
 
-`example/make_spectra_SB2.py` and `example/make_spectra_SB3.py` generate synthetic spectra in `obs/` under the current working directory. Both use templates in `Models/`. From the repository root, run `python example/make_spectra_SB2.py` or `python example/make_spectra_SB3.py`.
+`example/make_spectra_SB2.py` and `example/make_spectra_SB3.py` generate synthetic spectra in `obs/` under the current working directory. Both use templates in `Models/`. For the installable binary workflow, run `cd example`, `python make_spectra_SB2.py`, then `saad quickstart.yaml`.
 
 `example/disentangle_shift_and_add.py` runs the installable binary CLI with a YAML configuration. The original V2.0 Python-configured workflow remains in `example/legacy/` because it still supports triples. Edit `example/legacy/Input_disentangle.py`, then run `python example/legacy/disentangle_shift_and_add.py` from a directory containing `obs/`. It writes `Output/` in that directory. See [legacy documentation](example/legacy/README.md).

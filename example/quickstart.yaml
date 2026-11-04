@@ -1,0 +1,30 @@
+# Short SB2 example for example/make_spectra_SB2.py.
+# Run from example/ so generated obs/ matches this YAML file.
+star_name: DemoSB2
+obs_path: obs
+output_path: Output
+obs_format: TXT
+obs_data_filename: ObsDat.txt
+orbital_params:
+  Period: 473.0
+  T0: 0.0
+  ecc: 0.5
+  omega: 60.0
+  Gamma: 0.0
+  K1: 87.0
+  K2: 135.0
+lguess_vec: [0.3]
+range_str: HeI4472
+ranges:
+  - [4457.0, 4489.0]
+grid_dis: true
+dense_k_arr: [3, 3]
+ini_fac_K_arr: [0.75, 0.75]
+fin_fac_K_arr: [1.25, 1.25]
+itr_num_lim: 8
+num_itr_final: 100
+inter_kind: linear
+strict_neg_A: true
+strict_neg_B: true
+plot_extremes: true
+plot_conv: true

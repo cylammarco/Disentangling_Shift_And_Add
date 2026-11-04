@@ -25,6 +25,7 @@ dependencies = [
 
 [project.optional-dependencies]
 test = ["pytest>=8", "build>=1.2"]
+docs = ["sphinx>=7.4,<9", "myst-parser>=4,<5", "sphinx-rtd-theme>=3,<4"]
 
 [project.scripts]
 saad = "saad.cli:main"
