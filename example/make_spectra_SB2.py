@@ -6,6 +6,7 @@ import math
 import os
 import random
 import sys
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -49,8 +50,9 @@ Q = 0.3
 specnum = 20
 
 # Mask path
-MaskPath = "Models/G40000g400v10.vis.rectvmac30vsini200.dat"
-MaskPath2 = "Models/BG27000g425v2.vis.rectvmac30vsini25.dat"
+MODEL_DIR = Path(__file__).resolve().parents[1] / "Models"
+MaskPath = MODEL_DIR / "G40000g400v10.vis.rectvmac30vsini200.dat"
+MaskPath2 = MODEL_DIR / "BG27000g425v2.vis.rectvmac30vsini25.dat"
 
 
 # Nebular Lines?
