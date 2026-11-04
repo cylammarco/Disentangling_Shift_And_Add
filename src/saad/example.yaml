@@ -1,0 +1,55 @@
+# Example configuration for the installable binary workflow.
+# Paths are relative to this file. Set obs_path to a directory of spectra.
+star_name: Test
+obs_path: obs
+output_path: Output
+obs_format: TXT
+obs_data_filename: ObsDat.txt
+# FITS input reads observation dates from this header keyword.
+mjd_header_keyword: MJD-OBS
+
+# Inner binary orbital parameters. omega is in degrees; velocities in km/s.
+orbital_params:
+  Period: 473.0
+  T0: 0.0
+  ecc: 0.5
+  omega: 60.0
+  Gamma: 0.0
+  K1: 87.0
+  K2: 135.0
+
+comp_num: 2
+# Fraction of total light from secondary; primary fraction is 1 minus this.
+lguess_vec: [0.3]
+
+# Spectral windows for K1/K2 search. Wavelength units match input spectra.
+range_str: HeI4472
+ranges:
+  - [4457.0, 4489.0]
+
+# Set grid_dis false to use K1/K2 above without searching.
+grid_dis: true
+dense_k_arr: [10, 10]
+ini_fac_K_arr: [0.1, 0.1]
+fin_fac_K_arr: [2.0, 2.0]
+itr_num_lim: 50
+num_itr_final: 1000
+
+# linear, cubic, or resample. Resample uses flux-conserving spectresc.
+inter_kind: linear
+clean_cos: false
+renormalise: false
+norm_points: []
+neb_lines: false
+force_neg_sigma: 2.0
+strict_neg_A: true
+strict_neg_B: true
+# Optional emission windows where positive component flux is allowed.
+pos_lim_cond_A: []
+pos_lim_cond_B: []
+
+fig_type: png
+plot_extremes: true
+plot_fits: false
+plot_conv: false
+plot_itr: false

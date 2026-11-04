@@ -11,8 +11,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from astropy.convolution import Gaussian1DKernel, convolve
 from astropy.io import ascii
-from scipy import asarray as ar
-from scipy import exp, stats
 from scipy.interpolate import interp1d
 from scipy.optimize import curve_fit
 from scipy.signal import savgol_filter

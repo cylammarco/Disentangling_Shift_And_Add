@@ -1,431 +1,55 @@
-# Input file for shift-and-add & grid disentangling
-# author: Tomer Shenar
-# credit: Matthias Fabry & Julia Bodensteiner
-# contact: T.Shenar@uva.nl or tomer.shenar@gmail.com for questions/inquires
-# 
+# Example configuration for the installable binary workflow.
+# Paths are relative to this file. Set obs_path to a directory of spectra.
+star_name: Test
+obs_path: obs
+output_path: Output
+obs_format: TXT
+obs_data_filename: ObsDat.txt
+# FITS input reads observation dates from this header keyword.
+mjd_header_keyword: MJD-OBS
 
-###############################
-##### STAR AND DATA INFO ######
-###############################
-
-
-# Name of object (just for file names)
-star_name: "Test"
-
-# Path to data (folder where all spectra are stored):
-obs_path: "obs"
-
-# Path to output
-output_path: "Output"
-
-
-### Type of data format. There are two options:
-### OPTION 1: obs_format = 'TXT'
-### assumes that the observations are in ascii format, each file containing 2-column tables of wave & normalised flux.
-### In addition, the observation directory MUST contain a file called 'ObsDat.txt', which has the following format:
-###   MJD          obsname
-###   xxxx          NAME1
-###   yyy           NAME2
-###   ...           ...
-### The paths should be either absolute or relative to the directory in which the script is stored.
-### OPTION 2: obs_format = 'FITS'
-### The script will look for ALL fits files in the given directory.
-### The script will attempt to retrieve the dates from the fits headers using a user-specified header keyword
-### IMPORTANT NOTES:
-### 1. It doesn't matter if the dates are "MJD", "JD", "HJD", etc -- important is that the T0 provided by the user matches this!
-### 2. For the "fits" option, I include a few built-in functions to read e.g. HERMES, X-SHOOTER, FEROS spectra....
-### User should feel free to update the reading of the files!
-
-obs_format: "TXT"
-obs_data_filename: "ObsDat.txt"
-
-# Only important if obs_format='FITS'
-mjd_header_keyword: "MJD-OBS"
-
-# Figure format
-fig_type: "png"
-
-###############################
-##### SYSTEM PROPERTIES #######
-###############################
-
-# Number of components; currently possible only 2 components
-# up to four components in upcoming version
-comp_num: 2
-
-
-# Orbital parameters
-### P, T0, ecc, omega, and gamma cannot be derived with current version and are assumed by the user
-### K1, K2 can be explored via chi2 if required by the user, but initial guesses should be given.
-### Important: omega is defined via vr(1) = Gamma1 + K1*(cos(nu) + ecc * cos(omega) )
-### If results don't make sense, your best bet is to set omega --> omega + pi
+# Inner binary orbital parameters. omega is in degrees; velocities in km/s.
 orbital_params:
-    ####### MUST BE FILLED BELOW ALWAYS (inner binary) ######
-    Period: 473.0
-    T0: 0.0
-    ecc: 0.5
-    omega: 60.0
-    Gamma: 0.0
-    K1: 87.0
-    K2: 135.0
-    ####### Only for triples / quadruples: refers to outer orbit of companion/binary AROUND the inner binary ######
-    ####### IF outer period very long/negligible, set PeriodOut = 1E10 to neglect long-term motion
-    PeriodOut: 0.0
-    T0Out: 0.0
-    eccOut: 0.0
-    omegaOut: 0.0
-    KOut: 0.0
-    ####### Only for Quadruples: refers to orbit of 2nd binary in the system  ######
-    Period_2: 0.0
-    T0_2: 0.0
-    ecc_2: 0.0
-    omega_2: 0.0
-    K3: 0.0
-    K4: 0.0
+  Period: 473.0
+  T0: 0.0
+  ecc: 0.5
+  omega: 60.0
+  Gamma: 0.0
+  K1: 87.0
+  K2: 135.0
 
+comp_num: 2
+# Fraction of total light from secondary; primary fraction is 1 minus this.
+lguess_vec: [0.3]
 
-# Vector of light ratios, [l2, l3, l4], i.e. flux_i / sum(flux). Assumed constant throughout range.
-lguess_vec: [0.3, 0.0, 0.0]
+# Spectral windows for K1/K2 search. Wavelength units match input spectra.
+range_str: HeI4472
+ranges:
+  - [4457.0, 4489.0]
 
-
-# Where to measure S2N, only important for  defining continuum and weighting of spectra when co-adding (not critical)
-S2Nblue: 4155
-S2Nred: 4165
-
-
-################################
-##### Disentangling options ####
-################################
-
-# Run grid disentangling?
-# If TRUE: will conduct grid disentangling and derive Ks
-# If FALSE: will only peform separation using input K1,K2
-grid_dis: True
-
-# Define grid search (only important if GridDis = True).
-# For setting K1, K2, K3, K4 search arrays: Karr = np.arange(ini_fac_K*K, fin_fac_K*K, Dense)
-# Current version only works for first two columns (K1, K2)
-# If dense_K_arr[i] = 1, then the search is "1D", i.e. K is fixed to the value specified by the user.
-dense_k_arr: [10, 10, 1, 1]
-ini_fac_K_arr: [0.1, 0.1, 0.3, 0.3]
-fin_fac_K_arr: [2.0, 2.0, 2.0, 2.0]
-
-
-# Number of iterations
-### IMPORTANT NOTES:
-### 1. Ideally convergence could be determined via a condition on EPS (See above). However, a suitable condition could not yet be developed
-### --> User needs to judge when results are "sufficiently converged", by either comparing the results for different itr numbers, or using
-###     options below.
-### 2. itr_num_lim is the number of iterations per K1,K2 pair; num_itr_final is the number of iterations for the final separation,
-###    after K1, K2 have been derived / set. Often, itr_num_lim < num_itr_final, for speed, and since individual iterations occur on individual lines.
-### 3. See documentation for tips and insights about number of iterations.
-
+# Set grid_dis false to use K1/K2 above without searching.
+grid_dis: true
+dense_k_arr: [10, 10]
+ini_fac_K_arr: [0.1, 0.1]
+fin_fac_K_arr: [2.0, 2.0]
 itr_num_lim: 50
 num_itr_final: 1000
 
-
-# If strict_neg_A = True, enforce disentangled spectra to be below continuum except for prespecified regions (given in array).
-# Below continuum = force_neg_sigma "sigmas" below continuum.
-# HIGHLY RECOMMENDED for OB-type stars -- otherwise, output often exhibits cosmetic "wings" and continuum offsets.
-# For WR stars typically "False" is better.
-# "Positive regions" should be regions with expected emission lines etc. For WR stars,
-
+# linear, cubic, or resample. Resample uses flux-conserving spectresc.
+inter_kind: linear
+clean_cos: false
+renormalise: false
+norm_points: []
+neb_lines: false
 force_neg_sigma: 2.0
+strict_neg_A: true
+strict_neg_B: true
+# Optional emission windows where positive component flux is allowed.
+pos_lim_cond_A: []
+pos_lim_cond_B: []
 
-strict_neg_A: True
-
-# Only relevant if strict_neg_A=True
-pos_lim_cond_A:
-    - 3968.0
-    - 3969.0
-
-# Same as strict_neg_A for secondary
-strict_neg_B: True
-
-pos_lim_cond_B:
-    - 3968.0
-    - 3969.0
-
-# Same as strict_neg_A for tertiary
-strict_neg_C: True
-
-pos_lim_cond_C:
-    - 3968.0
-    - 3969.0
-
-# Same as strict_neg_A for fourth companion
-strict_neg_D: True
-
-pos_lim_cond_D:
-    - 3968.0
-    - 3969.0
-
-
-# Define regions where the solution is allowed to be above continuum (where emission is expected)
-pos_lim_cond_Neb:
-    - 3968.0, 3971.0
-    - 4025.0, 4027.0
-    - 4100.5, 4103
-    - 4143.0, 4145
-    - 4339.0, 4342
-        # [4340., 4345],
-    - 4387.0, 4391.5
-        # [4385., 4393],
-        # [4335., 4345.],
-        # [4465., 4482.]
-    - 4470.0, 4473.0
-        # [4135., 4150.],
-        # [4228., 4238.],
-        # [4330., 4355.],
-        # [4381., 4396.],
-        # [4465., 4485.],
-        # [4840., 4880.],
-        # [4916., 4930.],  [5010., 5024.],
-        # [5160., 5180.], [5190., 5210.], [5225., 5240.], [5270., 5290.],
-        # [5310, 5325.], [5255., 5370.], [5520., 5540.], [6140., 6160.], [6230., 6260.], [6310., 6330],
-        # [6340., 6390.], [6410., 6460.], [6510, 6520.], [6553., 6574.], [7505, 7525], [7766., 7786.]
-
-
-# Plot fits between disentangled spectra, their sum, and the observations at RV extremes.
-# Highly recommended for sanity checks and presentation in papers.
-# The plot is shown for the K1, K2 pair most closely matching (velo_plot_usr_K1_ext, velo_plot_usr_K2_ext, ...) given by the user.
-# Recommended: True
-PLOTEXTREMES: True
-
-# line width and figsize for "Extreme plots"
-line_wid_ext: 2
-extremes_fig_size: (7, 7)
-
-
-# Plot fits between disentangled spectra, their sum, and each epoch of observation.
-# Useful to examine all data; rather tedious but important for critical systems (e.g., black holes!)
-# The plot is shown for the K1, K2 pair most closely matching (velo_plot_usr_K1, velo_plot_usr_K2) given by the user.
-# Recommended: False
-PLOTFITS: True
-
-
-# Plot convergence plot
-# If True, will produce converge plot, i.e. EPS vs. itr for each run.
-# EPS = SUM(DisSpec[i+1] - DisSpec[i]), where the maximum on all components is taken.
-# Recommended: False
-PLOTCONV: True
-
-
-# Plot disentangled spectra after each "n_iteration_plot" iterations; helpful for judging convergence.
-# Recommended: False
-PLOTITR: True
-n_iteration_plot: 100
-
-
-# Type of interpolation in interp1d (see python doc for options);
-# 'linear' can lead to artificial increase of S/N due to interpolation
-# 'cubic' performs better, but is slower.
-inter_kind: "linear"
-
-# Region for fitting parabola of chi2 in index steps from minimum
-parb_size: 3
-
-
-################################
-##### Disentangling lines ######
-################################
-
-# User chooses in which line/lines the K1,K2 search should occur.
-# All that is required is:
-# 1. ranges = [ [l1, l2], [l3, l4], ...]
-# 2. range_str = 'xxx' -- used below to pick range, but either way, needs to be specified for file-saving purposes.
-# For convenience, typical lines (for massive stars) are provided below.
-# USERS: feel free to edit wavelength regions below!!!
-# IMPORTANT: the final ranges used/plotted are NOT identical to those provided by the user: the script reduces them to ensure that edge issues are avoided.
-# The reduction depends on K1, K2; the user should judge (e.g., using "PLOTEXTREMES") that the lines are well covered and reach continuum at both edges.
-# Ideally, disentangled region should be line-dominated (to enhance the signal on chi2), but certainly reach continuum at the edges.
-
-
-# range_str = 'Hdelta'
-# range_str = 'Hgamma'
-# range_str = 'Hbeta'
-# range_str = 'Halpha'
-# range_str = 'Balmer'
-# range_str = 'Balmer_noHalpha'
-# range_str = 'HeI'
-range_str: "HeI4472"
-# range_str = 'HeI4122'
-# range_str = 'HeI4009'
-# range_str = 'HeI4026'
-# range_str = 'HeI4144'
-# range_str = 'HeII4200'
-# range_str = 'HeI4388'
-# range_str = 'HeII4546'
-# range_str = 'HeI5878'
-# range_str = '4120Region'
-# range_str = '4020Region'
-# range_str = 'IronEmission'
-# range_str = 'OIII'
-# range_str = 'OIII8446'
-# range_str = 'HI8367'
-# range_str = 'Fe4584'
-# range_str = 'Fe5168'
-# range_str = 'Fe5192'
-# range_str = 'Fe5234'
-# range_str = 'Fe5275'
-# range_str = 'Fe5316'
-##range_str = 'Fe5362'
-# range_str = 'AllHeI'
-# range_str = 'AllHeII'
-# range_str = 'AllHe'
-# range_str = 'Indiv'
-
-##### Define ranges corresponding too the strings above.... CHANGE IF NEEDED
-ranges:
-    # Hydrogen
-    - 6553.0, 6570.0 # H-alpha
-    - 4840.0, 4877.0 # H-beta
-    - 4310.0, 4370.0 # H-gamma
-    - 4070.0, 4140.0 # H-delta
-    # Helium-I
-    - 4000.0, 4050.0 # HeI 4026
-    - 4003.0, 4018.0 # HeI 4009
-    - 4115.0, 4127.0 # HeI 4122
-    - 4120.0, 4170.0 # HeI 4144
-    - 4365.0, 4410.0 # HeI 4388
-    - 4457.0, 4489.0 # HeI 4472
-    - 5869.0, 5881.0 # HeI 5878
-    - 8367.0, 8500.0 # HeI 8367
-    # Helium-II
-    - 4185.0, 4215.0 # HeII 4200
-    - 4515.0, 4565.0 # HeII 4545
-    # Oxygen
-    - 7760.0, 7785.0 # OIII Julia
-    - 8438.0, 8455.0 # OIII 8446
-    # Iron
-    - 4580.0, 4588.0 # Fe 4584
-    - 4580.0, 4586.0 # Fe 4584
-    - 5162.0, 5174.0 # Fe 5168
-    - 5190.0, 5205.0 # Fe 5192
-    - 5230.0, 5240.0 # Fe 5234
-    - 5268.0, 5282.0 # Fe 5275
-    - 5310.0, 5322.0 # Fe 5316
-    - 5358.0, 5367.0 # Fe 5362
-
-# Define "ranges" list based on user's choices from above.
-
-if range_str == "Hgamma":
-    ranges = [range_Hg]
-elif range_str == "Hbeta":
-    ranges = [range_Hb]
-elif range_str == "Halpha":
-    ranges = [range_Ha]
-elif range_str == "Balmer":
-    ranges = [range_Hd, range_Hg, range_Hb, range_Ha]
-elif range_str == "Balmer_noHalpha":
-    ranges = [range_Hd, range_Hg, range_Hb]
-elif range_str == "HeI":
-    ranges = [
-        rangeHeI4009,
-        rangeHeI4026,
-        rangeHeI4122,
-        rangeHeI4144,
-        rangeHeI4388,
-        rangeHeI4472,
-    ]
-elif range_str == "Hdelta":
-    ranges = [range_Hd]
-elif range_str == "HeI4472":
-    ranges = [range_HeI4472]
-elif range_str == "HeI5878":
-    ranges = [range_HeI5878]
-elif range_str == "HeI4144":
-    ranges = [range_HeI4144]
-elif range_str == "HeII4200":
-    ranges = [range_HeII4200]
-elif range_str == "4120Region":
-    ranges = [range_HeI4144]
-elif range_str == "IronEmission":
-    ranges = [range_Fe5168, range_Fe5192, range_Fe5275, range_Fe5316]
-elif range_str == "Fe4584":
-    ranges = [range_Fe4584]
-elif range_str == "Fe5168":
-    ranges = [range_Fe5168]
-elif range_str == "Fe5192":
-    ranges = [range_Fe5192]
-elif range_str == "Fe5234":
-    ranges = [range_Fe5234]
-elif range_str == "Fe5275":
-    ranges = [range_Fe5275]
-elif range_str == "Fe5316":
-    ranges = [range_Fe5316]
-elif range_str == "Fe5362":
-    ranges = [range_Fe5362]
-elif range_str == "OIII":
-    ranges = [range_OIIIJulia]
-elif range_str == "OIII8446":
-    ranges = [range_OIII8446]
-elif range_str == "HI8367":
-    ranges = [range_HI8367]
-elif range_str == "HeI4122":
-    ranges = [range_HeI4122]
-elif range_str == "HeI4009":
-    ranges = [range_HeI4009]
-elif range_str == "HeI4026":
-    ranges = [range_HeI4026]
-elif range_str == "HeI4388":
-    ranges = [range_HeI4388]
-elif range_str == "HeII4546":
-    ranges = [range_HeII4545]
-elif range_str == "AllHe":
-    ranges = [range_HeI4026, range_HeII4200, range_HeI4472, range_HeII4545]
-elif range_str == "AllHeI":
-    # ranges = [range_HeI4026, range_HeI4388, range_HeI4472]
-    ranges = [
-        range_HeI4026,
-        range_HeI4144,
-        range_HeI4388,
-        range_HeI4472,
-        range_HeII4545,
-    ]
-elif range_str == "AllHeII":
-    ranges = [range_HeII4200, range_HeII4545]
-elif range_str == "Indiv":
-    ranges = [range_HeII4200, range_HeI4472]
-
-
-################################
-##### Fancy options   ##########
-################################
-
-
-# Clean cosmics?
-clean_cos: False
-
-
-# renormalise spectra at pre-specified points.
-renormalise: False
-norm_points:
-    - 3961.0
-    - 4006.0
-    - 4016.0
-    - 4038.0
-    - 4088.0
-    - 4116.0
-    - 4129.0
-    - 4138.0
-    - 4154.0
-    - 4195.0
-    - 4210.0
-    - 4328.0
-    - 4362.0
-    - 4386.0
-    - 4400.0
-    - 4462.0
-    - 4490.0
-    - 4494.0
-    - 4530.0
-    - 4557.0
-    - 4560.0
-
-
-# Nebular line handling?
-neb_lines: False
-
-
-####################
+fig_type: png
+plot_extremes: true
+plot_fits: false
+plot_conv: false
+plot_itr: false

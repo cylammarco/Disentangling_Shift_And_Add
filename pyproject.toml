@@ -1,6 +1,49 @@
 [build-system]
-requires = ["poetry>=1.1", "setuptools>=59.6.0", "wheel"]
+requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "saad-disentangling"
+version = "1.1.0"
+description = "Shift-and-add spectral disentangling"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Astronomy",
+]
+dependencies = [
+    "astropy>=6.1.1",
+    "matplotlib>=3.9",
+    "numpy>=1.26",
+    "pandas>=2.2.2",
+    "PyYAML>=6.0",
+    "scipy>=1.13.1",
+    "spectresc>=1.1.0",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8", "build>=1.2"]
+
+[project.scripts]
+saad = "saad.cli:main"
+
+[project.urls]
+Repository = "https://github.com/cylammarco/Disentangling_Shift_And_Add"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+saad = ["example.yaml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.coverage.run]
+relative_files = true
 
 [tool.isort]
 profile = "black"

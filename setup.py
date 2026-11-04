@@ -1,6 +1,7 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+"""Compatibility entry point; package metadata lives in pyproject.toml."""
 
 from setuptools import setup
 
-setup()
+
+if __name__ == "__main__":
+    setup()

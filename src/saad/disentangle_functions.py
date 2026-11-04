@@ -38,7 +38,7 @@ class Disentangle:
         for _spec in spec_list:
             wave = _spec[:, 0]
             flux = _spec[:, 1]
-            mask = np.isnan(flux) | ~np.isfinite(flux)
+            mask = np.isfinite(wave) & np.isfinite(flux)
             _spec = np.column_stack((wave[mask], flux[mask]))
             self.spec_list.append(_spec)
 

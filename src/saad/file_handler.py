@@ -10,6 +10,7 @@ from scipy import interpolate
 __all__ = [
     "read_file",
     "read_fits",
+    "read_generic_fits",
     "read_NLA",
     "read_psfSpec",
     "read_pampelMUSE",
@@ -58,7 +59,6 @@ def read_file(infile, col0=0, col1=1):
 
     else:
         wave, flux = read_ascii(infile, col0, col1)
-    flux = np.nan_to_num(flux, 1.0)
     return np.array([wave, flux]).T
 
 
@@ -98,12 +98,24 @@ def read_fits(infile):
         elif ins == "STIS":
             wave, flux = read_STIS(infile)
         else:
-            print("File type unkown, trying HERMES")
-            wave, flux = read_HERMES(infile)
+            print("Unknown instrument, reading primary FITS spectrum")
+            wave, flux = read_generic_fits(infile)
     else:
-        wave, flux = read_HERMES(infile)
-    flux = np.nan_to_num(flux, 1.0)
+        wave, flux = read_generic_fits(infile)
     return wave, flux
+
+
+def read_generic_fits(infile):
+    header = fits.getheader(infile)
+    flux = fits.getdata(infile)
+    wave = _linear_wave(header, len(flux))
+    return wave, flux
+
+
+def _linear_wave(header, count):
+    step = header.get("CDELT1", header.get("CD1_1"))
+    pixel = np.arange(count) + 1 - header.get("CRPIX1", 1)
+    return header["CRVAL1"] + pixel * step
 
 
 def read_NLA(infile):
@@ -200,7 +212,7 @@ def read_HERMES(infile):
     print("%s: Input file is a HERMES file." % infile)
     header = fits.getheader(infile)
     # for files with standard wavelegth array
-    if (header["CTYPE1"] == "WAVELENGTH") or (header["CTYPE1"] == "AWAV"):
+    if (header.get("CTYPE1") == "WAVELENGTH") or (header.get("CTYPE1") == "AWAV"):
         flux = fits.getdata(infile)
         crval = header["CRVAL1"]
         cdelt = header["CDELT1"]
@@ -208,7 +220,7 @@ def read_HERMES(infile):
         wave = crval + np.arange(0, naxis1) * cdelt
 
     # for files that are given in logarithmic wl array
-    if header["CTYPE1"] == "log(wavelength)":
+    if header.get("CTYPE1") == "log(wavelength)":
         flux = fits.getdata(infile)
         crval = header["CRVAL1"]
         cdelt = header["CDELT1"]
@@ -399,7 +411,7 @@ def read_ascii(infile, col0=0, col1=1):
     print("%s: Input file is an ascii file." % infile)
     # wave, flux = np.loadtxt(infile, usecols=(0, 1), unpack=True)
     spec = (
-        pd.read_csv(infile, header=None, delim_whitespace=True, comment="#")
+        pd.read_csv(infile, header=None, sep=r"\s+", comment="#")
     ).values
     wave = spec[:, col0]
     flux = spec[:, col1]
