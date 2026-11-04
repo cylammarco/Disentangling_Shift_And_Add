@@ -34,10 +34,10 @@ print(summary["K1"], summary["K2"], wave.shape, primary_flux.min())
 ## Interpret the grid and convergence
 
 :::{figure} _static/figures/velocity_grid.png
-:alt: Reduced chi-square across a coarse grid in primary and secondary velocity amplitudes.
+:alt: Reduced chi-square across an eleven by eleven grid in primary and secondary velocity amplitudes.
 :width: 75%
 
-The seeded example's grid score is lowest at the marked point. This small grid is for demonstration, not a measurement of amplitude uncertainty.
+An 11-by-11 scan of the seeded example. White cross marks its lowest score; black plus marks the amplitudes injected into the synthetic data. This is a separate refinement scan from the quickstart's three-by-three run, and it is not a measurement of amplitude uncertainty.
 :::
 
 :::{figure} _static/figures/convergence.png

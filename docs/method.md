@@ -52,10 +52,10 @@ With `grid_dis: true`, SAAD tries the Cartesian product of the configured $K_1$ 
 Each grid runs from `ini_fac_K_arr[i] * K_i` to `fin_fac_K_arr[i] * K_i`, inclusive, with `dense_k_arr[i]` points. A one-point grid uses the **initial** factor, so set that factor to `1.0` to hold an amplitude at its supplied value.
 
 :::{figure} _static/figures/velocity_grid.png
-:alt: Three by three reduced chi-square grid around the supplied velocity amplitudes.
+:alt: Eleven by eleven reduced chi-square grid around the supplied velocity amplitudes.
 :width: 75%
 
-Reduced chi-square scores for the seeded example's three-by-three grid. The white cross marks the selected point. A coarse grid demonstrates the workflow; scientific analyses should choose and inspect a grid appropriate to the data.
+Reduced chi-square scores from a separate 11-by-11 scan of the seeded example observations. The white cross marks the selected point; the black plus marks the amplitudes used to generate the spectra. The quickstart uses a faster three-by-three grid for its component spectra. Inspect grid size and scoring assumptions before scientific use.
 :::
 
 The score uses residuals in `ranges`, dividing each observation by a noise estimate from its first 20 flux samples (floor $10^{-3}$). It divides the summed squared residual by the number of scored observed pixels minus two component spectra's scored pixels, with a minimum denominator of one. Consequently, the reported `reduced_chi2` is an operational fit score; interpret formal confidence intervals only after checking noise and model assumptions. The grid search does not estimate uncertainties for $K_1$ or $K_2$.

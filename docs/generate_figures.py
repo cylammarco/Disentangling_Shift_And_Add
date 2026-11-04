@@ -85,17 +85,23 @@ with TemporaryDirectory() as temporary:
     axes[-1].set_xlabel("Wavelength (Å)")
     _save(figure, "observed_fit.png")
 
-    scores = np.loadtxt(folder / "Output" / "HeI4472_grid_dis_K1K2.txt")
-    k1 = _grid_values(config, "K1", 0)
-    k2 = _grid_values(config, "K2", 1)
+    grid_config = {**config, "dense_k_arr": [11, 11], "output_path": str(folder / "GridOutput"),
+                   "num_itr_final": 8, "plot_extremes": False, "plot_conv": False}
+    _, grid_orbit = run(grid_config)
+    scores = np.loadtxt(folder / "GridOutput" / "HeI4472_grid_dis_K1K2.txt")
+    assert scores.shape == (11, 11)
+    k1 = _grid_values(grid_config, "K1", 0)
+    k2 = _grid_values(grid_config, "K2", 1)
     k1_half = (k1[1] - k1[0]) / 2
     k2_half = (k2[1] - k2[0]) / 2
     figure, axis = plt.subplots(figsize=(6.4, 4.8))
     image = axis.imshow(scores.T, origin="lower", extent=(k1[0] - k1_half, k1[-1] + k1_half,
                                                         k2[0] - k2_half, k2[-1] + k2_half),
                         aspect="auto", interpolation="nearest", cmap="viridis")
-    axis.scatter([orbit["K1"]], [orbit["K2"]], marker="x", s=95, color="white", lw=2, label="Best grid point")
-    axis.set(xlabel="Primary K1 (km/s)", ylabel="Secondary K2 (km/s)")
+    axis.scatter([grid_orbit["K1"]], [grid_orbit["K2"]], marker="x", s=95, color="white", lw=2, label="Best grid point")
+    axis.scatter([config["orbital_params"]["K1"]], [config["orbital_params"]["K2"]],
+                 marker="+", s=100, color="black", lw=2, label="Input amplitudes")
+    axis.set(xlabel="Primary K1 (km/s)", ylabel="Secondary K2 (km/s)", title="11 × 11 velocity grid")
     axis.legend(loc="upper right")
     figure.colorbar(image, ax=axis, label="Reduced χ²")
     _save(figure, "velocity_grid.png")
